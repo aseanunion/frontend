@@ -55,18 +55,31 @@
     let signer, provider;
 
     async function connectWallet() {
-      if (window.ethereum) {
-        provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = await provider.getSigner();
-        const address = await signer.getAddress();
-        document.getElementById("walletAddress").textContent = address;
-        fetchModules();
-        getASEANXBalance(address);
-      } else {
-        alert("Please install MetaMask.");
+    try {
+      if (typeof window.ethereum === 'undefined') {
+        alert("MetaMask not detected. Please install MetaMask.");
+        return;
       }
+
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const walletAddress = accounts[0];
+
+      document.getElementById('walletAddress').innerText = walletAddress;
+      document.getElementById('connectBtn').innerText = "Connected";
+      document.getElementById('connectBtn').disabled = true;
+
+      // You can now use `walletAddress` to call contracts
+      console.log("Connected:", walletAddress);
+    } catch (error) {
+      console.error("Connection failed:", error);
+      alert("Failed to connect wallet. Please approve the connection in MetaMask.");
     }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('connectBtn');
+    if (btn) btn.addEventListener('click', connectWallet);
+  });
 
     async function fetchModules() {
       const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, provider);
