@@ -81,28 +81,28 @@
     }
   }
 
-  async function fetchModules() {
-    const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, signer.provider);
-    const list = document.getElementById("moduleList");
-    list.innerHTML = "";
+ async function fetchModules() {
+  const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, signer.provider);
+  const list = document.getElementById("moduleList");
+  list.innerHTML = "";
 
-    for (let i = 0; i < moduleNames.length; i++) {
-      const addr = await registry.getModule(i);
-      const li = document.createElement("li");
-      li.className = "list-group-item d-flex justify-content-between align-items-center";
-      li.innerHTML = `<span>${moduleNames[i]}</span><code>${addr}</code>`;
-      list.appendChild(li);
-    }
+  for (let i = 0; i < moduleNames.length; i++) {
+    const addr = await registry.getModule(i);
+    const li = document.createElement("li");
+    li.className = "list-group-item d-flex justify-content-between align-items-center";
+    li.innerHTML = `<span>${moduleNames[i]}</span><code>${addr}</code>`;
+    list.appendChild(li);
   }
+}
 
   async function getASEANXBalance(addr) {
-    const token = new ethers.Contract(aseanxAddress, ASEANXABI, signer.provider);
-    const bal = await token.balanceOf(addr);
-    const symbol = await token.symbol();
-    document.getElementById("aseanxBalance").textContent =
-      `${ethers.formatUnits(bal, 18)} ${symbol}`;
-  }
-
+  const token = new ethers.Contract(aseanxAddress, ASEANXABI, signer.provider);
+  const bal = await token.balanceOf(addr);
+  const symbol = await token.symbol();
+  document.getElementById("aseanxBalance").textContent =
+    `${ethers.formatUnits(bal, 18)} ${symbol}`;
+}
+    
   window.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('connectBtn');
     if (btn) btn.addEventListener('click', connectWallet);
