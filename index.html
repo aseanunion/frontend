@@ -86,7 +86,7 @@
 
   async function fetchModules() {
     try {
-      const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, provider);
+      const registry = new ethers.Contract(ethers.getAddress(registryAddress), ASEANRegistryABI, provider);
       const list = document.getElementById("moduleList");
       list.innerHTML = "";
 
