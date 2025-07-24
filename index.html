@@ -82,7 +82,7 @@
   }
 
   async function fetchModules() {
-    const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, provider);
+    const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, signer.provider);
     const list = document.getElementById("moduleList");
     list.innerHTML = "";
 
@@ -96,7 +96,7 @@
   }
 
   async function getASEANXBalance(addr) {
-    const token = new ethers.Contract(aseanxAddress, ASEANXABI, provider);
+    const token = new ethers.Contract(aseanxAddress, ASEANXABI, signer.provider);
     const bal = await token.balanceOf(addr);
     const symbol = await token.symbol();
     document.getElementById("aseanxBalance").textContent =
