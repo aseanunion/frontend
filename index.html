@@ -58,30 +58,35 @@
   let provider, signer;
 
   async function connectWallet() {
-    try {
-      if (!window.ethereum) {
-        alert("MetaMask not detected.");
-        return;
-      }
-
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      provider = new ethers.BrowserProvider(window.ethereum);
-      signer = await provider.getSigner();
-      const address = await signer.getAddress();
-
-      document.getElementById('walletAddress').innerText = address;
-      document.getElementById('connectBtn').innerText = "Connected";
-      document.getElementById('connectBtn').disabled = true;
-
-      // ✅ Load balance and module list
-      await getASEANXBalance(address);
-      await fetchModules();
-
-    } catch (err) {
-      console.error("Wallet connection failed:", err);
-      alert("Failed to connect wallet.");
+  try {
+    if (typeof window.ethereum === 'undefined') {
+      alert("MetaMask not detected. Please install MetaMask.");
+      return;
     }
+
+    // Connect to wallet
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const walletAddress = accounts[0];
+
+    // Initialize Ethers provider and signer (v6+ syntax)
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+
+    document.getElementById('walletAddress').innerText = walletAddress;
+    document.getElementById('connectBtn').innerText = "Connected";
+    document.getElementById('connectBtn').disabled = true;
+
+    // ✅ After wallet connect, fetch balance + modules
+    await getASEANXBalance(walletAddress);
+    await fetchModules();
+
+    console.log("Connected:", walletAddress);
+  } catch (error) {
+    console.error("Connection failed:", error);
+    alert("Failed to connect wallet. Please approve the connection in MetaMask.");
   }
+}
+
 
 async function fetchModules() {
   try {
