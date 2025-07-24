@@ -85,8 +85,7 @@
 
 async function fetchModules() {
   try {
-    const normalizedRegistryAddress = ethers.getAddress(registryAddress);
-    const registry = new ethers.Contract(normalizedRegistryAddress, ASEANRegistryABI, provider);
+    const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, provider);
     const list = document.getElementById("moduleList");
     list.innerHTML = "";
 
@@ -97,7 +96,6 @@ async function fetchModules() {
       const li = document.createElement("li");
       li.className = "list-group-item d-flex justify-content-between align-items-center";
       li.innerHTML = `<span>${moduleNames[i]}</span><code>${addr}</code>`;
-
       list.appendChild(li);
     }
   } catch (err) {
@@ -105,6 +103,7 @@ async function fetchModules() {
     alert("Failed to load modules from registry. See console for details.");
   }
 }
+
 
 
   async function getASEANXBalance(address) {
