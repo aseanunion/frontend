@@ -30,15 +30,19 @@
   </div>
 <!-- ✅ Load Ethers.js (Works in all browsers including Edge) -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
-
 <script>
+  const registryAddress = "0xF793721549fc423E62FcdB2491B378a55EB9bB4";
+  const aseanxAddress = "0x44D7b726D4F64493E819C40ABB7f25d633bF404D";
+
   let cleanRegistryAddress;
-try {
-  cleanRegistryAddress = ethers.getAddress(registryAddress.trim());
-} catch (err) {
-  console.error("🚫 Invalid registry address format:", registryAddress);
-  return;
-}
+  try {
+    cleanRegistryAddress = ethers.getAddress(registryAddress.trim());
+  } catch (err) {
+    console.error("🚫 Invalid registry address format:", registryAddress);
+    // ❌ `return` is illegal here — just don't assign or throw
+    cleanRegistryAddress = null;
+  }
+
   const ASEANRegistryABI = [
     "function getModule(uint8) view returns (address)"
   ];
@@ -47,9 +51,6 @@ try {
     "function balanceOf(address) view returns (uint256)",
     "function symbol() view returns (string)"
   ];
-
-  const registryAddress = "0xF793721549fc423E62FcdB2491B378a55EB9bB4";
-  const aseanxAddress = "0x44D7b726D4F64493E819C40ABB7f25d633bF404D";
 
   const moduleNames = [
     "ASEANXToken",
@@ -91,27 +92,31 @@ try {
     }
   }
 
- async function fetchModules() {
-  try {
-    const registry = new ethers.Contract(cleanRegistryAddress, ASEANRegistryABI, provider);
-    const list = document.getElementById("moduleList");
-    list.innerHTML = "";
-
-    for (let i = 0; i < moduleNames.length; i++) {
-      const addr = await registry.getModule(i);
-      console.log(`Module ${moduleNames[i]} (index ${i}):`, addr);
-
-      const li = document.createElement("li");
-      li.className = "list-group-item d-flex justify-content-between align-items-center";
-      li.innerHTML = `<span>${moduleNames[i]}</span><code>${addr}</code>`;
-      list.appendChild(li);
+  async function fetchModules() {
+    if (!cleanRegistryAddress) {
+      console.error("❌ Registry address is invalid or not set.");
+      return;
     }
-  } catch (err) {
-    console.error("❌ Error fetching modules from ASEANRegistry:", err);
-    alert("Failed to load modules from registry. See console for details.");
-  }
-}
 
+    try {
+      const registry = new ethers.Contract(cleanRegistryAddress, ASEANRegistryABI, provider);
+      const list = document.getElementById("moduleList");
+      list.innerHTML = "";
+
+      for (let i = 0; i < moduleNames.length; i++) {
+        const addr = await registry.getModule(i);
+        console.log(`Module ${moduleNames[i]} (index ${i}):`, addr);
+
+        const li = document.createElement("li");
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+        li.innerHTML = `<span>${moduleNames[i]}</span><code>${addr}</code>`;
+        list.appendChild(li);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching modules from ASEANRegistry:", err);
+      alert("Failed to load modules from registry. See console for details.");
+    }
+  }
 
   async function getASEANXBalance(addr) {
     try {
@@ -126,12 +131,11 @@ try {
     }
   }
 
-  // Bind button
   window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('connectBtn')?.addEventListener('click', connectWallet);
   });
-
 </script>
+
 
 
 </body>
