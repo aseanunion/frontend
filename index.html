@@ -28,10 +28,10 @@
       <p id="aseanxBalance" class="fw-semibold"></p>
     </div>
   </div>
+<!-- ✅ Load Ethers.js (Works in all browsers including Edge) -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
 
- <script type="module">
-  import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.10.0/+esm";
-
+<script>
   const ASEANRegistryABI = [
     "function getModule(uint8) view returns (address)"
   ];
@@ -55,52 +55,61 @@
     "Migration"
   ];
 
-  let signer, provider;
+  let provider, signer;
 
   async function connectWallet() {
     try {
       if (!window.ethereum) {
-        alert("MetaMask not detected. Please install MetaMask.");
+        alert("MetaMask not detected.");
         return;
       }
 
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
       provider = new ethers.BrowserProvider(window.ethereum);
       signer = await provider.getSigner();
       const address = await signer.getAddress();
 
-      document.getElementById('walletAddress').textContent = address;
-      document.getElementById('connectBtn').textContent = "Connected";
+      document.getElementById('walletAddress').innerText = address;
+      document.getElementById('connectBtn').innerText = "Connected";
       document.getElementById('connectBtn').disabled = true;
 
-      await fetchModules();
+      // ✅ Load balance and module list
       await getASEANXBalance(address);
+      await fetchModules();
 
-    } catch (error) {
-      console.error("Connection failed:", error);
-      alert("Failed to connect wallet. Please approve the connection in MetaMask.");
+    } catch (err) {
+      console.error("Wallet connection failed:", err);
+      alert("Failed to connect wallet.");
     }
   }
 
   async function fetchModules() {
-    const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, signer);
-    const list = document.getElementById("moduleList");
-    list.innerHTML = "";
+    try {
+      const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, provider);
+      const list = document.getElementById("moduleList");
+      list.innerHTML = "";
 
-    for (let i = 0; i < moduleNames.length; i++) {
-      const addr = await registry.getModule(i);
-      const li = document.createElement("li");
-      li.className = "list-group-item d-flex justify-content-between align-items-center";
-      li.innerHTML = `<span>${moduleNames[i]}</span><code>${addr}</code>`;
-      list.appendChild(li);
+      for (let i = 0; i < moduleNames.length; i++) {
+        const addr = await registry.getModule(i);
+        const li = document.createElement("li");
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+        li.innerHTML = `<span>${moduleNames[i]}</span><code>${addr}</code>`;
+        list.appendChild(li);
+      }
+    } catch (err) {
+      console.error("Module fetch error:", err);
     }
   }
 
-  async function getASEANXBalance(addr) {
-    const token = new ethers.Contract(aseanxAddress, ASEANXABI, signer);
-    const bal = await token.balanceOf(addr);
-    const symbol = await token.symbol();
-    document.getElementById("aseanxBalance").textContent =
-      `${ethers.formatUnits(bal, 18)} ${symbol}`;
+  async function getASEANXBalance(address) {
+    try {
+      const token = new ethers.Contract(aseanxAddress, ASEANXABI, provider);
+      const balance = await token.balanceOf(address);
+      const symbol = await token.symbol();
+      document.getElementById("aseanxBalance").innerText = `${ethers.formatUnits(balance, 18)} ${symbol}`;
+    } catch (err) {
+      console.error("Balance fetch error:", err);
+    }
   }
 
   document.getElementById("connectBtn").addEventListener("click", connectWallet);
