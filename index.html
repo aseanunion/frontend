@@ -3,140 +3,176 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ASEAN UNION Portal</title>
-
-  
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>ASEAN UNION Prototype</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
 </head>
-<body class="bg-light text-dark">
-  <div class="container py-5">
-    <h1 class="text-center mb-4">ASEAN UNION Prototype Portal</h1>
-
-    <div class="d-grid gap-2 col-6 mx-auto">
-      <button id="connectBtn" class="btn btn-primary">Connect Wallet</button>
-      <div id="walletAddress" class="mt-2 fw-bold text-center"></div>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
+    <a class="navbar-brand" href="#">ASEAN UNION</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><button class="btn btn-link nav-link" onclick="openModal('governanceModal')">Governance</button></li>
+        <li class="nav-item"><button class="btn btn-link nav-link" onclick="openModal('migrationModal')">Migration</button></li>
+        <li class="nav-item"><button class="btn btn-link nav-link" onclick="openModal('marketplaceModal')">Marketplace</button></li>
+        <li class="nav-item"><button class="btn btn-link nav-link" onclick="openModal('citizenModal')">CitizenNFT</button></li>
+        <li class="nav-item"><button class="btn btn-primary ms-3" onclick="openModal('joinModal')">JOIN ASEAN UNION</button></li>
+      </ul>
     </div>
-
-    <div class="mt-4">
-      <h4>📦 Registered Modules (via ASEANRegistry)</h4>
-      <ul class="list-group" id="moduleList"></ul>
+    <div class="d-flex">
+      <button id="connectBtn" class="btn btn-outline-light">Connect Wallet</button>
     </div>
+  </nav>
 
-    <div class="mt-4">
-      <h4>💰 Your ASEANX Balance</h4>
-      <p id="aseanxBalance" class="fw-semibold"></p>
+  <div class="container mt-4">
+    <div class="alert alert-info">
+      Wallet: <span id="walletAddress">Not connected</span><br>
+      Balance: <span id="aseanxBalance">-</span>
+    </div>
+    <ul id="moduleList" class="list-group"></ul>
+  </div>
+
+  <!-- Governance Modal -->
+  <div class="modal fade" id="governanceModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Vote on Proposal</h5></div>
+        <div class="modal-body">
+          <input class="form-control mb-2" id="proposalId" placeholder="Proposal ID">
+          <select class="form-select" id="voteOption">
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary">Submit Vote</button>
+        </div>
+      </div>
     </div>
   </div>
-<!-- ✅ Load Ethers.js (Works in all browsers including Edge) -->
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
-<script>
-  const registryAddress = "0xF793721549fc423E62FcdB2491B378a55EB9bB42";
-  const aseanxAddress = "0x44D7b726D4F64493E819C40ABB7f25d633bF404D";
 
-  let cleanRegistryAddress;
-  try {
-    cleanRegistryAddress = ethers.getAddress(registryAddress.trim());
-  } catch (err) {
-    console.error("🚫 Invalid registry address format:", registryAddress);
-    // ❌ `return` is illegal here — just don't assign or throw
-    cleanRegistryAddress = null;
-  }
+  <!-- Migration Modal -->
+  <div class="modal fade" id="migrationModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Request Country Migration</h5></div>
+        <div class="modal-body">
+          <input class="form-control" placeholder="Target Country Code (e.g. TH, MY, ID)">
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary">Submit Request</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  const ASEANRegistryABI = [
-    "function getModule(uint8) view returns (address)"
-  ];
+  <!-- Marketplace Modal -->
+  <div class="modal fade" id="marketplaceModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Marketplace</h5></div>
+        <div class="modal-body">
+          <p><strong>Buy/Sell Commodities</strong> — coming soon...</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  const ASEANXABI = [
-    "function balanceOf(address) view returns (uint256)",
-    "function symbol() view returns (string)"
-  ];
+  <!-- CitizenNFT Modal -->
+  <div class="modal fade" id="citizenModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Your CitizenNFT</h5></div>
+        <div class="modal-body">
+          <p>Status: <code>Not Minted</code></p>
+          <button class="btn btn-success">Mint NFT</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  const moduleNames = [
-    "ASEANXToken",
-    "CitizenNFT",
-    "Governance",
-    "ProjectFunding",
-    "Marketplace",
-    "OracleBridge",
-    "StakingVault",
-    "Migration"
-  ];
+  <!-- JOIN ASEAN Modal -->
+  <div class="modal fade" id="joinModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Join ASEAN UNION</h5></div>
+        <div class="modal-body">
+          <p>Start your KYC verification and citizenship registration.</p>
+          <button class="btn btn-primary" onclick="startKYC()">Start KYC</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  let provider, signer;
+  <script>
+    const registryAddress = "0xF793721549fc423E62FcdB2491B378a55EB9bB42";
+    const aseanxAddress = "0x44D7b726D4F64493E819C40ABB7f25d633bF404D";
 
-  async function connectWallet() {
-    try {
-      if (typeof window.ethereum === 'undefined') {
-        alert("MetaMask not detected. Please install MetaMask.");
-        return;
+    const ASEANRegistryABI = ["function getModule(uint8) view returns (address)"];
+    const ASEANXABI = [
+      "function balanceOf(address) view returns (uint256)",
+      "function symbol() view returns (string)"
+    ];
+
+    const moduleNames = ["ASEANXToken", "CitizenNFT", "Governance", "ProjectFunding", "Marketplace", "OracleBridge", "StakingVault", "Migration"];
+
+    let provider, signer;
+
+    function openModal(id) {
+      const modal = new bootstrap.Modal(document.getElementById(id));
+      modal.show();
+    }
+
+    async function connectWallet() {
+      try {
+        if (typeof window.ethereum === 'undefined') return alert("Install MetaMask");
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        const wallet = accounts[0];
+        document.getElementById('walletAddress').innerText = wallet;
+        document.getElementById('connectBtn').disabled = true;
+        document.getElementById('connectBtn').innerText = "Connected";
+        await getASEANXBalance(wallet);
+        await fetchModules();
+      } catch (err) {
+        console.error("❌ Wallet connection failed", err);
       }
-
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const walletAddress = accounts[0];
-
-      provider = new ethers.BrowserProvider(window.ethereum);
-      signer = await provider.getSigner();
-
-      document.getElementById('walletAddress').innerText = walletAddress;
-      document.getElementById('connectBtn').innerText = "Connected";
-      document.getElementById('connectBtn').disabled = true;
-
-      await getASEANXBalance(walletAddress);
-      await fetchModules();
-
-      console.log("✅ Connected:", walletAddress);
-    } catch (error) {
-      console.error("❌ Connection failed:", error);
-      alert("Failed to connect wallet. Please approve the connection in MetaMask.");
-    }
-  }
-
-  async function fetchModules() {
-    if (!cleanRegistryAddress) {
-      console.error("❌ Registry address is invalid or not set.");
-      return;
     }
 
-    try {
-      const registry = new ethers.Contract(cleanRegistryAddress, ASEANRegistryABI, provider);
-      const list = document.getElementById("moduleList");
-      list.innerHTML = "";
-
-      for (let i = 0; i < moduleNames.length; i++) {
-        const addr = await registry.getModule(i);
-        console.log(`Module ${moduleNames[i]} (index ${i}):`, addr);
-
-        const li = document.createElement("li");
-        li.className = "list-group-item d-flex justify-content-between align-items-center";
-        li.innerHTML = `<span>${moduleNames[i]}</span><code>${addr}</code>`;
-        list.appendChild(li);
-      }
-    } catch (err) {
-      console.error("❌ Error fetching modules from ASEANRegistry:", err);
-      alert("Failed to load modules from registry. See console for details.");
-    }
-  }
-
-  async function getASEANXBalance(addr) {
-    try {
+    async function getASEANXBalance(addr) {
       const token = new ethers.Contract(aseanxAddress, ASEANXABI, provider);
       const bal = await token.balanceOf(addr);
       const symbol = await token.symbol();
-
-      document.getElementById("aseanxBalance").textContent =
-        `${ethers.formatUnits(bal, 18)} ${symbol}`;
-    } catch (err) {
-      console.error("❌ Failed to fetch ASEANX balance:", err);
+      document.getElementById("aseanxBalance").innerText = `${ethers.formatUnits(bal, 18)} ${symbol}`;
     }
-  }
 
-  window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('connectBtn')?.addEventListener('click', connectWallet);
-  });
-</script>
+    async function fetchModules() {
+      try {
+        const registry = new ethers.Contract(registryAddress, ASEANRegistryABI, provider);
+        const list = document.getElementById("moduleList");
+        list.innerHTML = "";
+        for (let i = 0; i < moduleNames.length; i++) {
+          const addr = await registry.getModule(i);
+          const li = document.createElement("li");
+          li.className = "list-group-item d-flex justify-content-between align-items-center";
+          li.innerHTML = `<span>${moduleNames[i]}</span><code>${addr}</code>`;
+          list.appendChild(li);
+        }
+      } catch (err) {
+        console.error("❌ Error loading modules", err);
+      }
+    }
 
+    function startKYC() {
+      alert("🌐 Redirecting to KYC API (mock)...");
+      // TODO: Integrate your real KYC API call here
+    }
 
-
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('connectBtn').addEventListener('click', connectWallet);
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
