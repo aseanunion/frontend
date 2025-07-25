@@ -88,64 +88,45 @@
 </style>
 
 <script>
-  const map = L.map("aseanMap", {
-    zoomControl: false,
-    attributionControl: false
-  });
+const map = L.map("aseanMap", {
+  zoomControl: false,
+  attributionControl: false
+});
 
-  // Load ASEAN GeoJSON
-  fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json")
-    .then(res => res.json())
-    .then(geojson => {
-      const geoLayer = L.geoJSON(geojson, {
-        style: {
-          fillColor: "url(#asean-gradient)",
+fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json")
+  .then(res => res.json())
+  .then(geojson => {
+    const features = geojson.features;
+    const total = features.length;
+
+    // Create color scale (warm to cool)
+    const getGradientColor = (index) => {
+      const ratio = index / total;
+      const r = Math.round(255 - ratio * 100); // from red (255) to teal (155)
+      const g = Math.round(150 + ratio * 80);  // from 150 to 230
+      const b = Math.round(50 + ratio * 180);  // from 50 to 230
+      return `rgb(${r},${g},${b})`;
+    };
+
+    const geoLayer = L.geoJSON(geojson, {
+      style: (feature, index) => {
+        const i = features.indexOf(feature);
+        return {
+          fillColor: getGradientColor(i),
+          fillOpacity: 0.85,
           color: "#ffffff",
-          weight: 1,
-          fillOpacity: 1
-        },
-        onEachFeature: (feature, layer) => {
-          if (feature.properties.name) {
-            layer.bindTooltip(feature.properties.name, { permanent: false });
-          }
+          weight: 1
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        if (feature.properties.name) {
+          layer.bindTooltip(feature.properties.name, { permanent: false });
         }
-      }).addTo(map);
+      }
+    }).addTo(map);
 
-      // Fit to bounds
-      map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] });
-
-      // Wait for map to render before injecting SVG gradient
-      map.once('layeradd', () => {
-        const svg = document.querySelector('.leaflet-overlay-pane svg');
-        if (svg && !svg.querySelector('defs')) {
-          const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-          const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-
-          gradient.setAttribute("id", "asean-gradient");
-          gradient.setAttribute("x1", "0%");
-          gradient.setAttribute("y1", "0%");
-          gradient.setAttribute("x2", "100%");
-          gradient.setAttribute("y2", "100%");
-
-          const stops = [
-            { offset: "0%", color: "#ff6a00" },
-            { offset: "30%", color: "#ffd800" },
-            { offset: "60%", color: "#21d4fd" },
-            { offset: "100%", color: "#b721ff" }
-          ];
-
-          stops.forEach(stopData => {
-            const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-            stop.setAttribute("offset", stopData.offset);
-            stop.setAttribute("stop-color", stopData.color);
-            gradient.appendChild(stop);
-          });
-
-          defs.appendChild(gradient);
-          svg.insertBefore(defs, svg.firstChild);
-        }
-      });
-    });
+    map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] });
+  });
 </script>
 </body>
 </html>
