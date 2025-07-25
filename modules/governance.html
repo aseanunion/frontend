@@ -1,122 +1,106 @@
+<!-- governance.html -->
 <div class="container">
-  <h2>ASEAN UNION Governance</h2>
-  <div id="proposal-list" class="mt-4"></div>
+  <h3>📜 ASEAN UNION Proposals</h3>
+  <div id="governance-status" class="mb-3 text-muted">Loading proposals...</div>
 
-  <!-- Only visible if owner -->
-  <button id="openProposalModal" class="btn btn-primary mt-3" style="display: none;" data-bs-toggle="modal" data-bs-target="#proposalModal">
-    ➕ Add Proposal
+  <div id="proposals-list"></div>
+
+  <!-- Owner-only Create Proposal Button -->
+  <button id="createProposalBtn" class="btn btn-primary mt-3" style="display: none;" data-bs-toggle="modal" data-bs-target="#createProposalModal">
+    ➕ New Proposal
   </button>
 
-  <!-- Bootstrap Modal -->
-  <div class="modal fade" id="proposalModal" tabindex="-1" aria-labelledby="proposalModalLabel" aria-hidden="true">
+  <!-- Create Proposal Modal -->
+  <div class="modal fade" id="createProposalModal" tabindex="-1">
     <div class="modal-dialog">
-      <form id="proposalForm" class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="proposalModalLabel">Create New Proposal</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="text" id="title" class="form-control mb-2" placeholder="Proposal Title" required />
-          <textarea id="description" class="form-control" placeholder="Proposal Description" required></textarea>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-success">Submit Proposal</button>
-        </div>
-      </form>
+      <div class="modal-content">
+        <form id="proposalForm">
+          <div class="modal-header">
+            <h5 class="modal-title">Create Proposal</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input class="form-control mb-2" name="title" placeholder="Title" required />
+            <textarea class="form-control" name="description" placeholder="Description" required></textarea>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Proposal</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </div>
 
-<script type="module">
-  import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.min.js";
-
-  const registryAddress = "0x17714FBac6fC9881133F34707CE00d18d07f11A3";
-  const registryABI = ["function getModule(uint8) view returns (address)"];
-  const governanceABI = [
-    "function getAllProposals() view returns (tuple(uint256 id,string title,string description,uint256 voteCountYes,uint256 voteCountNo,bool executed)[])",
-    "function createProposal(string title, string description) external",
-    "function vote(uint256 proposalId, bool support) external",
-    "function approve(uint256 proposalId) external",
-    "function owner() view returns (address)"
-  ];
-
-  let governance;
-
-  async function getGovernanceContract(signerOrProvider) {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const registry = new ethers.Contract(registryAddress, registryABI, provider);
-    const addr = await registry.getModule(2); // ENUM 2 for Governance
-    return new ethers.Contract(addr, governanceABI, signerOrProvider);
+<script>
+const mockUserAddress = window.localStorage.getItem("wallet") || "0xOwner123...";  // simulated wallet
+const contractOwner = "0xOwner123..."; // match this for owner-only UI
+const mockProposals = [
+  {
+    id: 0,
+    title: "Universal Basic Income for ASEAN Citizens",
+    description: "Allocate 1,000 ASEANX monthly to verified citizens.",
+    voteCountYes: 35,
+    voteCountNo: 10,
+    executed: false,
+  },
+  {
+    id: 1,
+    title: "Subsidize Green Energy Farming",
+    description: "Provide tax incentives for solar panel adoption.",
+    voteCountYes: 52,
+    voteCountNo: 2,
+    executed: true,
   }
+];
 
-  async function loadProposals() {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const user = await signer.getAddress();
-    governance = await getGovernanceContract(signer);
+function loadMockProposals() {
+  const list = document.getElementById("proposals-list");
+  const status = document.getElementById("governance-status");
+  list.innerHTML = "";
+  status.innerText = "";
 
-    const owner = await governance.owner();
-    if (user.toLowerCase() === owner.toLowerCase()) {
-      document.getElementById("openProposalModal").style.display = "inline-block";
-    }
-
-    const proposals = await governance.getAllProposals();
-    const html = proposals.map(p => `
-      <div class="card mb-3">
-        <div class="card-body">
-          <h5>${p.title}</h5>
-          <p>${p.description}</p>
-          <p>✅ ${p.voteCountYes} | ❌ ${p.voteCountNo}</p>
-          <p>Status: ${p.executed ? "✅ Executed" : "🕒 Pending"}</p>
-          ${!p.executed ? `
-            <button onclick="vote(${p.id}, true)" class="btn btn-outline-success btn-sm">Vote Yes</button>
-            <button onclick="vote(${p.id}, false)" class="btn btn-outline-danger btn-sm">Vote No</button>
-            ${user.toLowerCase() === owner.toLowerCase() ? `
-              <button onclick="approve(${p.id})" class="btn btn-outline-primary btn-sm">Approve</button>
-            ` : ""}
-          ` : ""}
-        </div>
-      </div>
-    `).join("");
-
-    document.getElementById("proposal-list").innerHTML = html;
-  }
-
-  document.getElementById("proposalForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const title = document.getElementById("title").value;
-    const description = document.getElementById("description").value;
-    try {
-      const tx = await governance.createProposal(title, description);
-      await tx.wait();
-      alert("✅ Proposal created!");
-      bootstrap.Modal.getInstance(document.getElementById("proposalModal")).hide();
-      loadProposals();
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to create proposal.");
-    }
+  mockProposals.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "card mb-3";
+    div.innerHTML = `
+      <div class="card-body">
+        <h5>${p.title}</h5>
+        <p>${p.description}</p>
+        <p>✅ Yes: ${p.voteCountYes} | ❌ No: ${p.voteCountNo}</p>
+        <p>Status: ${p.executed ? "<span class='text-success'>Approved</span>" : "<span class='text-warning'>Pending</span>"}</p>
+        ${mockUserAddress === contractOwner && !p.executed ? `<button class="btn btn-success btn-sm" onclick="approveProposal(${p.id})">Approve</button>` : ""}
+      </div>`;
+    list.appendChild(div);
   });
 
-  window.vote = async function (id, support) {
-    try {
-      const tx = await governance.vote(id, support);
-      await tx.wait();
-      loadProposals();
-    } catch (e) {
-      alert("❌ Voting failed.");
-    }
+  if (mockUserAddress === contractOwner) {
+    document.getElementById("createProposalBtn").style.display = "inline-block";
   }
+}
 
-  window.approve = async function (id) {
-    try {
-      const tx = await governance.approve(id);
-      await tx.wait();
-      loadProposals();
-    } catch (e) {
-      alert("❌ Approval failed.");
-    }
+function approveProposal(id) {
+  const proposal = mockProposals.find(p => p.id === id);
+  if (proposal) {
+    proposal.executed = true;
+    alert(`✅ Proposal ${id} approved!`);
+    loadMockProposals();
   }
+}
 
-  window.onload = loadProposals;
+document.getElementById("proposalForm").onsubmit = (e) => {
+  e.preventDefault();
+  const form = new FormData(e.target);
+  const title = form.get("title");
+  const description = form.get("description");
+  const newId = mockProposals.length;
+
+  mockProposals.push({ id: newId, title, description, voteCountYes: 0, voteCountNo: 0, executed: false });
+  alert("🎉 Proposal submitted!");
+  loadMockProposals();
+  bootstrap.Modal.getInstance(document.getElementById("createProposalModal")).hide();
+};
+
+window.onload = loadMockProposals;
 </script>
