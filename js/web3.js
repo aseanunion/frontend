@@ -30,11 +30,22 @@ async function connectWallet() {
   signer = await provider.getSigner();
   userAddress = await signer.getAddress();
 
-  // Display and store wallet
   const display = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
+
+  // Update connect button text and disable
+  const connectBtn = document.getElementById("connectBtn");
+  if (connectBtn) {
+    connectBtn.innerText = display;
+    connectBtn.disabled = true;
+    connectBtn.classList.remove("btn-outline-light");
+    connectBtn.classList.add("btn-success");
+  }
+
+  // Also update fallback span
   const walletSpan = document.getElementById("walletAddress");
   if (walletSpan) walletSpan.innerText = display;
 
+  // Store wallet in localStorage
   window.localStorage.setItem("wallet", userAddress);
   window.walletConnected = true;
 
