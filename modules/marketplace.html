@@ -1,0 +1,137 @@
+<div class="card">
+  <div class="card-header bg-warning text-dark">🧺 ASEAN Commodity Marketplace</div>
+  <div class="card-body">
+    <p>Trade real-world goods in a simulated decentralized market. Citizens can list, buy, and remove commodities.</p>
+
+    <!-- Listing Form -->
+    <div id="listingForm" class="mb-4" style="display:none;">
+      <h6>📦 List New Commodity</h6>
+      <input id="marketName" class="form-control mb-2" placeholder="Commodity Name (e.g. Rice, Nickel)" />
+      <input id="marketUnit" class="form-control mb-2" placeholder="Unit (e.g. kg, tons, liters)" />
+      <input id="marketQty" type="number" class="form-control mb-2" placeholder="Quantity" />
+      <input id="marketPrice" type="number" class="form-control mb-2" placeholder="Price per unit (ETH)" step="0.0001" />
+      
+      <label class="form-label">📸 Upload Commodity Image (max 2MB):</label>
+      <input type="file" id="marketImage" class="form-control mb-2" accept="image/*" />
+
+      <button class="btn btn-primary" onclick="submitMarketplaceListing()">➕ Submit Listing</button>
+    </div>
+
+    <hr class="my-4">
+    <h6>📋 Active Listings</h6>
+    <div id="marketList" class="row g-3"></div>
+  </div>
+</div>
+
+<!-- Web3.Storage Module -->
+<script type="module">
+import { Web3Storage } from 'https://unpkg.com/web3.storage/dist/bundle.esm.min.js';
+
+const WEB3_API_KEY = "did:key:z6MktafuQzMWAzSfR7wquDfY6JQFJwbuoiLtwjoRAiQTMPXq";
+const web3Client = new Web3Storage({ token: WEB3_API_KEY });
+
+const marketABI = [
+  "function listCommodity(string,string,uint256,uint256,uint256,string) returns (uint256)",
+  "function getListingCount() view returns (uint256)",
+  "function getListing(uint256) view returns (string,string,uint256,uint256,uint256,address,string,bool)",
+  "function purchaseCommodity(uint256,uint256) payable",
+  "function removeListing(uint256)"
+];
+
+async function submitMarketplaceListing() {
+  const name = document.getElementById("marketName").value;
+  const unit = document.getElementById("marketUnit").value;
+  const qty = parseInt(document.getElementById("marketQty").value);
+  const price = parseFloat(document.getElementById("marketPrice").value);
+  const imageFile = document.getElementById("marketImage").files[0];
+
+  if (!name || !unit || !qty || !price) return alert("Please fill all required fields.");
+  if (!imageFile) return alert("Upload an image for the commodity.");
+  if (imageFile.size > 2 * 1024 * 1024) return alert("Image file too large. Max 2MB allowed.");
+
+  // Upload image to Web3.Storage
+  const imageCid = await web3Client.put([imageFile], { wrapWithDirectory: false });
+  const metadataURI = `ipfs://${imageCid}/${imageFile.name}`;
+
+  // Get countryId from CitizenNFT
+  const citizenContract = getContract("CitizenNFT", [
+    "function getCitizenData(address) view returns (uint256 countryId, bool verified)"
+  ]);
+  const [countryId] = await citizenContract.getCitizenData(userAddress);
+
+  const contract = getContract("Marketplace", marketABI);
+  const weiPrice = ethers.parseEther(price.toString());
+
+  const tx = await contract.connect(signer).listCommodity(name, unit, countryId, qty, weiPrice, metadataURI);
+  await tx.wait();
+
+  alert("✅ Commodity listed!");
+  await loadMarketplaceListings();
+}
+
+async function loadMarketplaceListings() {
+  const contract = getContract("Marketplace", marketABI);
+  const count = await contract.getListingCount();
+  const container = document.getElementById("marketList");
+  container.innerHTML = "";
+
+  for (let i = 0; i < count; i++) {
+    const [name, unit, countryId, qty, price, owner, metadataURI, active] = await contract.getListing(i);
+    if (!active || qty == 0) continue;
+
+    const priceEth = ethers.formatEther(price);
+    const isOwner = owner.toLowerCase() === userAddress.toLowerCase();
+
+    const div = document.createElement("div");
+    div.className = "col-md-6";
+    div.innerHTML = `
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5>${name} (${unit})</h5>
+          <p><strong>Country ID:</strong> ${countryId}</p>
+          <p><strong>Quantity:</strong> ${qty}</p>
+          <p><strong>Price per unit:</strong> ${priceEth} ETH</p>
+          ${metadataURI ? `<img src="${metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/')}" class="img-fluid mb-2" style="max-height:150px;">` : ''}
+          <div class="mt-2">
+            ${isOwner ? `
+              <button class="btn btn-danger btn-sm" onclick="removeMarketListing(${i})">🗑️ Remove</button>
+            ` : `
+              <input id="qty${i}" class="form-control form-control-sm mb-2" type="number" min="1" max="${qty}" placeholder="Buy quantity" />
+              <button class="btn btn-success btn-sm" onclick="buyMarketListing(${i}, ${price})">💰 Buy</button>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+  }
+
+  if (window.isCitizen) {
+    document.getElementById("listingForm").style.display = "block";
+  }
+}
+
+async function buyMarketListing(id, unitPrice) {
+  const qty = parseInt(document.getElementById(`qty${id}`).value);
+  if (!qty || qty <= 0) return alert("Enter valid quantity");
+
+  const total = unitPrice * BigInt(qty);
+  const contract = getContract("Marketplace", marketABI);
+  const tx = await contract.connect(signer).purchaseCommodity(id, qty, { value: total });
+  await tx.wait();
+
+  alert("✅ Purchase complete!");
+  await loadMarketplaceListings();
+}
+
+async function removeMarketListing(id) {
+  const contract = getContract("Marketplace", marketABI);
+  const tx = await contract.connect(signer).removeListing(id);
+  await tx.wait();
+
+  alert("✅ Listing removed");
+  await loadMarketplaceListings();
+}
+
+loadMarketplaceListings();
+</script>
