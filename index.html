@@ -3,17 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <title>ASEAN UNION</title>
-<!-- Bootstrap & HTMX -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-<script src="https://unpkg.com/htmx.org@1.9.2"></script>
 
-<!-- Ethers IIFE version (no import needed) -->
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+  <!-- Bootstrap & HTMX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <script src="https://unpkg.com/htmx.org@1.9.2"></script>
 
-<!-- Your app logic -->
-<script src="js/web3.js" defer></script>
+  <!-- Ethers.js (IIFE version, attaches to global `ethers`) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
 
+  <!-- Custom Web3 Wallet Logic -->
+  <script src="js/web3.js" defer></script>
+
+  <!-- Hook to auto-run module init on HTMX load -->
+  <script>
+    document.body.addEventListener('htmx:afterSettle', function (evt) {
+      const el = evt.target;
+
+      // Auto run init function if module is loaded
+      if (el.querySelector('#citizen-section') && typeof initCitizen === 'function') {
+        initCitizen();
+      }
+
+      if (el.querySelector('#migration-section') && typeof initMigration === 'function') {
+        initMigration();
+      }
+
+      if (el.querySelector('#funding-section') && typeof initFunding === 'function') {
+        initFunding();
+      }
+
+      if (el.querySelector('#governance-section') && typeof initGovernance === 'function') {
+        initGovernance();
+      }
+
+      if (el.querySelector('#election-section') && typeof initElection === 'function') {
+        initElection();
+      }
+
+      if (el.querySelector('#marketplace-section') && typeof initMarketplace === 'function') {
+        initMarketplace();
+      }
+
+      if (el.querySelector('#staking-section') && typeof initStaking === 'function') {
+        initStaking();
+      }
+
+      if (el.querySelector('#supplychain-section') && typeof initSupplyChain === 'function') {
+        initSupplyChain();
+      }
+
+      if (el.querySelector('#document-section') && typeof initDocuments === 'function') {
+        initDocuments();
+      }
+
+      // Add more modules as needed
+    });
+  </script>
 </head>
+
 <body class="bg-light">
 
   <!-- Navbar -->
@@ -28,7 +75,13 @@
   <!-- Tabs -->
   <div class="container mt-4">
     <ul class="nav nav-tabs">
-      <li class="nav-item"><a class="nav-link active" hx-get="modules/citizen.html" hx-target="#tabContent" hx-trigger="load" href="#">JOIN</a></li>
+      <li class="nav-item">
+        <a class="nav-link active"
+           hx-get="modules/citizen.html"
+           hx-target="#tabContent"
+           hx-trigger="load"
+           href="#">JOIN</a>
+      </li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/country.html" hx-target="#tabContent" href="#">Countries</a></li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/governance.html" hx-target="#tabContent" href="#">Governance</a></li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/funding.html" hx-target="#tabContent" href="#">Funding</a></li>
@@ -40,10 +93,9 @@
     </ul>
 
     <div id="tabContent" class="mt-4">
-      <!-- Content loaded via HTMX -->
+      <!-- Dynamic content from HTMX modules will load here -->
     </div>
   </div>
-
 
 </body>
 </html>
