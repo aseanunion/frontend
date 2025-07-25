@@ -79,56 +79,65 @@
   <script>
   mapboxgl.accessToken = 'pk.eyJ1IjoiYXNlYW51bmlvbiIsImEiOiJjbWRpcXJycGMwZHVoMnBvc3B4aHlkMGExIn0.yTzd8j9meT8hJeK9XxYVwA';
 
-  const map = new mapboxgl.Map({
-    container: 'asean3DMap',
-    style: 'mapbox://styles/mapbox/dark-v11',
-    center: [110, 2],
-    zoom: 4,
-    pitch: 45,
-    bearing: -10,
-    antialias: true
-  });
+const map = new mapboxgl.Map({
+  container: 'asean3DMap',
+  style: 'mapbox://styles/mapbox/light-v10', // cartoon-style map
+  center: [110, 2],
+  zoom: 4,
+  pitch: 50,
+  bearing: -20,
+  antialias: true
+});
 
-  map.on('load', async () => {
-    const geojson = await fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json").then(r => r.json());
+map.on('load', async () => {
+  const geojson = await fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json").then(r => r.json());
 
-    const tradeRoutes = await fetch("https://api.yourbackend.com/trade-routes") // 👈 Change to your backend
-      .then(r => r.json())
-      .catch(err => {
-        console.warn("Trade route fetch failed", err);
-        return [];
-      });
-
-    new deck.DeckGL({
-      map,
-      layers: [
-        new deck.GeoJsonLayer({
-          id: 'asean-countries',
-          data: geojson,
-          filled: true,
-          extruded: true,
-          getElevation: 10000,
-          getFillColor: [20, 150, 255, 100],
-          getLineColor: [255, 255, 255],
-          lineWidthMinPixels: 1
-        }),
-        new deck.ArcLayer({
-          id: 'trade-routes',
-          data: tradeRoutes,
-          getSourcePosition: d => d.source,
-          getTargetPosition: d => d.target,
-          getSourceColor: d => d.color || [0, 255, 0],
-          getTargetColor: d => d.color || [255, 0, 0],
-          getWidth: 4,
-          pickable: true,
-          autoHighlight: true,
-          onHover: ({object}) => {
-            map.getCanvas().title = object ? `🛳 ${object.commodity} from ${object.from} to ${object.to}` : '';
+  const deckgl = new deck.DeckGL({
+    map,
+    layers: [
+      new deck.GeoJsonLayer({
+        id: 'asean-cartoon-layer',
+        data: geojson,
+        extruded: true,
+        filled: true,
+        stroked: false,
+        wireframe: true,
+        getElevation: 50000, // height of extrusion
+        getFillColor: [255, 200, 100, 255],
+        getLineColor: [0, 0, 0, 255],
+        pickable: true,
+        onHover: ({object, x, y}) => {
+          const name = object?.properties?.name || 'Unknown';
+          const tooltip = document.getElementById('map-tooltip');
+          if (tooltip) {
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+            tooltip.innerText = `🇦🇸 ${name}`;
+            tooltip.style.display = 'block';
           }
-        })
-      ]
-    });
+        },
+        onLeave: () => {
+          const tooltip = document.getElementById('map-tooltip');
+          if (tooltip) tooltip.style.display = 'none';
+        }
+      })
+    ]
   });
+});
 </script>
+  <style>
+  #map-tooltip {
+    position: absolute;
+    z-index: 999;
+    background: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    display: none;
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+</style>
+<div id="map-tooltip"></div>
 </body>
 </html>
