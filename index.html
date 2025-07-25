@@ -132,27 +132,43 @@ fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map
 
 
 
-  async function loadMyShipShips() {
-  const rawUrl = 'https://services.myshiptracking.com/requests/vesselsonmaptempw.php?type=json&minlat=-11&maxlat=22&minlon=90&maxlon=130&zoom=5';
-  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(rawUrl);
-
+  async function fetchLiveShips() {
   try {
-    const response = await fetch(proxyUrl);
-    const text = await response.text();
-    const ships = JSON.parse(text);
+    const url = `https://ais.marineplan.com/location/2/locations.json?area=-10.0,95.0;22.0,130.0&moving=1&source=AIS`;
+    const res = await fetch(url);
+    const json = await res.json();
 
-    ships.forEach(ship => {
-      const [lon, lat, mmsi, name] = ship;
-      L.circleMarker([lat, lon], {
-        radius: 4,
-        color: '#0077b6',
-        fillOpacity: 0.7
-      }).addTo(map).bindPopup(`<strong>${name || 'Unnamed Ship'}</strong><br>MMSI: ${mmsi}`);
+    if (!json.reports || !Array.isArray(json.reports)) {
+      console.error("Invalid response format", json);
+      return;
+    }
+
+    json.reports.forEach(ship => {
+      const { latitude, longitude } = ship.point;
+      const name = ship.boatName || "Unknown";
+      const dest = ship.destinationName || "–";
+      const speed = ship.speedKmh || 0;
+
+      const marker = L.circleMarker([latitude, longitude], {
+        radius: 5,
+        color: "#0088ff",
+        fillColor: "#33ccff",
+        fillOpacity: 0.9,
+        weight: 1
+      }).addTo(map);
+
+      marker.bindPopup(`
+        <strong>${name}</strong><br>
+        📍 ${latitude.toFixed(3)}, ${longitude.toFixed(3)}<br>
+        🧭 Destination: ${dest}<br>
+        🚢 Speed: ${speed.toFixed(1)} km/h
+      `);
     });
-  } catch (error) {
-    console.error('❌ Ship fetch fail', error);
+  } catch (err) {
+    console.error("❌ Ship fetch fail", err);
   }
 }
+
 
 </script>
 </body>
