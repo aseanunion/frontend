@@ -129,34 +129,42 @@ fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map
       svg.prepend(defs);
     });
   });
-  const ws = new WebSocket("wss://stream.aisstream.io/v0/stream");
-ws.onopen = () => {
-  ws.send(JSON.stringify({
-    Apikey: "88d8ecb467d1f12c3f94f45237196086905fa807",
-    BoundingBoxes: [[-11, 90], [22, 130]], // lat/lon region covering ASEAN
-    FilterMessageTypes: ["PositionReport"]
-  }));
-};
 
-const vesselMarkers = {};
 
-ws.onmessage = event => {
-  const msg = JSON.parse(event.data);
-  if (!msg.lat || !msg.lon) return;
-  
-  const id = msg.mmsi;
-  const latlng = [msg.lat, msg.lon];
+  async function loadMyShipShips() {
+  const params = new URLSearchParams({
+    type: 'json',
+    minlat: '-11', maxlat: '22',
+    minlon: '90', maxlon: '130',
+    zoom: 5,
+    filters: JSON.stringify({ "vtypes":",0,3,4,6,7,8,9,10,11,12,13","minsog":0,"maxsog":60 })
+  });
 
-  if (vesselMarkers[id]) {
-    vesselMarkers[id].setLatLng(latlng);
-  } else {
-    vesselMarkers[id] = L.circleMarker(latlng, {
-      radius: 4,
-      color: "#ff0000",
-      opacity: 0.8
-    }).addTo(map).bindPopup(`<strong>${msg.name || "Ship"}<br>Dest: ${msg.destination || "?"}</strong>`);
+  const url = `https://services.myshiptracking.com/requests/vesselsonmaptempw.php?${params}`;
+
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    // Response is TSV or JSON-like
+    const data = JSON.parse(text);
+    data.forEach(ship => {
+      const [lon, lat, mmsi, name] = ship;
+      L.circleMarker([lat, lon], {
+        radius: 4,
+        color: '#ea3535',
+        fillOpacity: 0.8
+      }).addTo(map)
+      .bindPopup(`<strong>${name || 'Vessel'}</strong><br>MMSI: ${mmsi}`);
+    });
+  } catch (err) {
+    console.error('❌ Ship fetch fail', err);
   }
-};
+}
+
+// After gradient GeoJSON layer loads:
+loadMyShipShips();
+setInterval(loadMyShipShips, 60_000);
+
 </script>
 </body>
 </html>
