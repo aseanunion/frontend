@@ -16,10 +16,11 @@
 
   <!-- Hook to auto-run module init on HTMX load -->
   <script>
+  document.addEventListener("DOMContentLoaded", () => {
     document.body.addEventListener('htmx:afterSettle', function (evt) {
       const el = evt.target;
 
-      // Auto run init function if module is loaded
+      // Auto-run init function if element is present
       if (el.querySelector('#citizen-section') && typeof initCitizen === 'function') {
         initCitizen();
       }
@@ -55,10 +56,10 @@
       if (el.querySelector('#document-section') && typeof initDocuments === 'function') {
         initDocuments();
       }
-
-      // Add more modules as needed
     });
-  </script>
+  });
+</script>
+
 </head>
 
 <body class="bg-light">
