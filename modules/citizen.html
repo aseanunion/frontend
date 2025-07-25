@@ -1,49 +1,48 @@
 <!-- citizen.html -->
-<div class="container mt-5">
-  <div id="citizen-section">
-    <h2>ASEAN UNION Citizenship</h2>
-    <div id="citizen-status" class="mb-4"></div>
+<div class="container mt-5" id="citizen-section">
+  <h2>ASEAN UNION Citizenship</h2>
+  <div id="citizen-status" class="mb-4"></div>
 
-    <div id="join-form" style="display: none;">
-      <h5>Join ASEAN UNION</h5>
-      <form id="kycForm">
-        <div class="mb-2">
-          <input type="text" class="form-control" name="name" placeholder="Full Name" required />
-        </div>
-        <div class="mb-2">
-          <input type="text" class="form-control" name="country" placeholder="Country (e.g. Indonesia)" required />
-        </div>
-        <div class="mb-2">
-          <input type="date" class="form-control" name="dob" required />
-        </div>
-        <div class="mb-2">
-          <input type="text" class="form-control" name="nationalId" placeholder="National ID" required />
-        </div>
-        <div class="mb-2">
-          <input type="file" class="form-control" name="photo" accept="image/*" required />
-        </div>
-        <button type="submit" class="btn btn-primary">Verify & Mint Citizenship</button>
-      </form>
-    </div>
-
-    <div id="profile" class="card mt-4" style="display: none;">
-      <div class="card-body">
-        <h5 class="card-title">Your ASEAN UNION Profile</h5>
-        <div id="profile-photo" class="mb-2"></div>
-        <p><strong>Name:</strong> <span id="profile-name"></span></p>
-        <p><strong>Country:</strong> <span id="profile-country"></span></p>
-        <p><strong>Date of Birth:</strong> <span id="profile-dob"></span></p>
-        <p><strong>National ID:</strong> <span id="profile-nid"></span></p>
-        <p><strong>Token ID:</strong> <span id="profile-token"></span></p>
+  <!-- Registration Form -->
+  <div id="join-form" style="display: none;">
+    <h5>Join ASEAN UNION</h5>
+    <form id="kycForm">
+      <div class="mb-2">
+        <input type="text" class="form-control" name="name" placeholder="Full Name" required />
       </div>
+      <div class="mb-2">
+        <input type="text" class="form-control" name="country" placeholder="Country (e.g. Indonesia)" required />
+      </div>
+      <div class="mb-2">
+        <input type="date" class="form-control" name="dob" placeholder="Date of Birth" required />
+      </div>
+      <div class="mb-2">
+        <input type="text" class="form-control" name="nationalId" placeholder="National ID" required />
+      </div>
+      <div class="mb-2">
+        <input type="file" class="form-control" name="photo" accept="image/*" required />
+      </div>
+      <button type="submit" class="btn btn-primary">Verify & Mint Citizenship</button>
+    </form>
+  </div>
+
+  <!-- NFT Profile -->
+  <div id="profile" class="card mt-4" style="display: none;">
+    <div class="card-body">
+      <h5 class="card-title">Your ASEAN UNION Profile</h5>
+      <div id="profile-photo" class="mb-3"></div>
+      <p><strong>Name:</strong> <span id="profile-name"></span></p>
+      <p><strong>Country:</strong> <span id="profile-country"></span></p>
+      <p><strong>Date of Birth:</strong> <span id="profile-dob"></span></p>
+      <p><strong>National ID:</strong> <span id="profile-nid"></span></p>
+      <p><strong>Token ID:</strong> <span id="profile-token"></span></p>
     </div>
   </div>
 </div>
 
-<script type="module">
-import { Web3Storage } from 'https://unpkg.com/web3.storage/dist/bundle.esm.min.js';
+<script>
 const registryAddress = "0x17714FBac6fC9881133F34707CE00d18d07f11A3";
-const registryABI = ["function getModule(uint8) view returns (address)"];
+const registryABI = [ "function getModule(uint8) view returns (address)" ];
 const citizenABI = [
   "function mintCitizen(string memory) external",
   "function hasCitizenNFT(address) view returns (bool)",
@@ -55,81 +54,78 @@ const WEB3_STORAGE_KEY = "did:key:z6MktafuQzMWAzSfR7wquDfY6JQFJwbuoiLtwjoRAiQTMP
 const MAX_IMAGE_SIZE_MB = 2;
 
 async function initCitizen() {
-  if (!window.ethereum) {
-    alert("🦊 MetaMask is required.");
+  if (!window.walletConnected || !window.userAddress) {
+    document.getElementById("citizen-status").innerHTML =
+      `<div class="alert alert-warning">🦊 Please connect your wallet first.</div>`;
     return;
   }
 
-  try {
-    await window.ethereum.request({ method: "eth_requestAccounts" });
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const user = await signer.getAddress();
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
+  const user = await signer.getAddress();
 
-    const registry = new ethers.Contract(registryAddress, registryABI, provider);
-    const citizenAddr = await registry.getModule(1);
-    const citizen = new ethers.Contract(citizenAddr, citizenABI, signer);
+  const registry = new ethers.Contract(registryAddress, registryABI, provider);
+  const citizenAddr = await registry.getModule(1);
+  const citizen = new ethers.Contract(citizenAddr, citizenABI, signer);
 
-    const statusEl = document.getElementById("citizen-status");
-    const formEl = document.getElementById("join-form");
-    const profileEl = document.getElementById("profile");
+  const isCitizen = await citizen.hasCitizenNFT(user);
+  window.isCitizen = isCitizen;
 
-    const isCitizen = await citizen.hasCitizenNFT(user);
+  const statusEl = document.getElementById("citizen-status");
+  const formEl = document.getElementById("join-form");
+  const profileEl = document.getElementById("profile");
 
-    if (isCitizen) {
-      statusEl.innerHTML = `<div class="alert alert-success">✅ You are already a citizen</div>`;
-      formEl.style.display = "none";
+  if (isCitizen) {
+    statusEl.innerHTML = `<div class="alert alert-success">✅ You are already a citizen</div>`;
+    formEl.style.display = "none";
+    profileEl.style.display = "block";
 
-      const tokenId = await citizen.tokenOf(user);
-      const tokenURI = await citizen.tokenURI(tokenId);
-      const metadata = await fetch(tokenURI).then(res => res.json());
+    const tokenId = await citizen.tokenOf(user);
+    const tokenURI = await citizen.tokenURI(tokenId);
+    const metadata = await fetch(tokenURI).then(res => res.json());
 
-      profileEl.style.display = "block";
-      document.getElementById("profile-photo").innerHTML = `<img src="${metadata.photo}" class="img-fluid rounded" width="200"/>`;
-      document.getElementById("profile-name").innerText = metadata.name;
-      document.getElementById("profile-country").innerText = metadata.country;
-      document.getElementById("profile-dob").innerText = metadata.dob;
-      document.getElementById("profile-nid").innerText = metadata.nationalId;
-      document.getElementById("profile-token").innerText = tokenId;
-    } else {
-      statusEl.innerHTML = `<div class="alert alert-warning">⚠️ You are not yet a citizen</div>`;
-      formEl.style.display = "block";
-      profileEl.style.display = "none";
+    document.getElementById("profile-photo").innerHTML = `<img src="${metadata.photo}" class="img-fluid rounded" width="200"/>`;
+    document.getElementById("profile-name").innerText = metadata.name;
+    document.getElementById("profile-country").innerText = metadata.country;
+    document.getElementById("profile-dob").innerText = metadata.dob;
+    document.getElementById("profile-nid").innerText = metadata.nationalId;
+    document.getElementById("profile-token").innerText = tokenId;
+  } else {
+    statusEl.innerHTML = `<div class="alert alert-warning">⚠️ You are not yet a citizen</div>`;
+    formEl.style.display = "block";
+    profileEl.style.display = "none";
+  }
+
+  // KYC form submission
+  document.getElementById("kycForm").onsubmit = async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const photo = formData.get("photo");
+
+    if (photo.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+      alert("Image too large (max 2MB)");
+      return;
     }
 
-    document.getElementById("kycForm").onsubmit = async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const photo = formData.get("photo");
-
-      if (photo.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-        alert("📸 Image too large (max 2MB)");
-        return;
-      }
-
-      const photoCID = await uploadToWeb3Storage(photo);
-      const metadata = {
-        name: formData.get("name"),
-        country: formData.get("country"),
-        dob: formData.get("dob"),
-        nationalId: formData.get("nationalId"),
-        photo: `https://ipfs.io/ipfs/${photoCID}`,
-        joinedAt: new Date().toISOString()
-      };
-
-      const metadataFile = new File([JSON.stringify(metadata)], "metadata.json", { type: "application/json" });
-      const metaCID = await uploadToWeb3Storage(metadataFile);
-      const metadataURI = `https://ipfs.io/ipfs/${metaCID}`;
-
-      await citizen.mintCitizen(metadataURI);
-      alert("🎉 Citizenship NFT minted!");
-      location.reload();
+    const photoCID = await uploadToWeb3Storage(photo);
+    const metadata = {
+      name: formData.get("name"),
+      country: formData.get("country"),
+      dob: formData.get("dob"),
+      nationalId: formData.get("nationalId"),
+      photo: `https://ipfs.io/ipfs/${photoCID}`,
+      joinedAt: new Date().toISOString()
     };
 
-  } catch (err) {
-    console.error("❌ Error during citizen init:", err);
-    alert("Wallet connection or contract call failed.");
-  }
+    const metadataFile = new File([JSON.stringify(metadata)], "metadata.json", { type: "application/json" });
+    const metaCID = await uploadToWeb3Storage(metadataFile);
+    const metadataURI = `https://ipfs.io/ipfs/${metaCID}`;
+
+    await citizen.mintCitizen(metadataURI);
+    alert("🎉 Citizenship NFT minted!");
+    location.reload();
+  };
 }
 
 async function uploadToWeb3Storage(file) {
@@ -145,6 +141,4 @@ async function uploadToWeb3Storage(file) {
   const data = await res.json();
   return data.cid;
 }
-
-window.onload = initCitizen;
 </script>
