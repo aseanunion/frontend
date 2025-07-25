@@ -40,7 +40,8 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { Web3Storage } from 'https://unpkg.com/web3.storage/dist/bundle.esm.min.js';
 const registryAddress = "0x17714FBac6fC9881133F34707CE00d18d07f11A3";
 const registryABI = ["function getModule(uint8) view returns (address)"];
 const citizenABI = [
