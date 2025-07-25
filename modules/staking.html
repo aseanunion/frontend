@@ -1,0 +1,117 @@
+<div class="container mt-5" id="staking-vault">
+  <h3>ASEANX Staking Vault</h3>
+  <p><strong>Total Staked:</strong> <span id="total-staked">...</span> ASEANX</p>
+  <p><strong>Your Stake:</strong> <span id="your-stake">...</span> ASEANX</p>
+
+  <div class="mb-3">
+    <label for="stake-amount" class="form-label">Stake ASEANX:</label>
+    <input type="number" class="form-control" id="stake-amount" placeholder="Enter amount to stake">
+    <button class="btn btn-primary mt-2" onclick="stakeTokens()">Stake</button>
+  </div>
+
+  <div class="mb-3">
+    <label for="unstake-amount" class="form-label">Unstake ASEANX:</label>
+    <input type="number" class="form-control" id="unstake-amount" placeholder="Enter amount to unstake">
+    <button class="btn btn-warning mt-2" onclick="unstakeTokens()">Unstake</button>
+  </div>
+
+  <div class="alert alert-info mt-3 d-none" id="staking-status"></div>
+</div>
+<script>
+  import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.min.js";
+
+const ASEANX_ADDRESS = "0xaa82A5E45a8B7d32527e17e6274B17a3428c628F";
+const STAKING_VAULT_ADDRESS = "0x7f4D25B5a9D3C9b71680331fb95424549F56b1C7";
+
+const ASEANX_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function approve(address spender, uint256 amount) public returns (bool)",
+  "function decimals() view returns (uint8)"
+];
+
+const VAULT_ABI = [
+  "function stake(uint256) external",
+  "function unstake(uint256) external",
+  "function stakedBalances(address) view returns (uint256)",
+  "function totalStaked() view returns (uint256)"
+];
+
+let provider, signer, userAddress;
+let aseanx, vault;
+
+async function connect() {
+  if (!window.ethereum) return alert("Please install MetaMask");
+
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  userAddress = await signer.getAddress();
+
+  aseanx = new ethers.Contract(ASEANX_ADDRESS, ASEANX_ABI, signer);
+  vault = new ethers.Contract(STAKING_VAULT_ADDRESS, VAULT_ABI, signer);
+
+  await loadStakingInfo();
+}
+
+async function loadStakingInfo() {
+  const [userStake, totalStaked, decimals] = await Promise.all([
+    vault.stakedBalances(userAddress),
+    vault.totalStaked(),
+    aseanx.decimals()
+  ]);
+
+  const factor = 10 ** decimals;
+
+  document.getElementById("your-stake").innerText = (userStake / factor).toLocaleString();
+  document.getElementById("total-staked").innerText = (totalStaked / factor).toLocaleString();
+}
+
+async function stakeTokens() {
+  const status = document.getElementById("staking-status");
+  const amountInput = document.getElementById("stake-amount").value;
+  const decimals = await aseanx.decimals();
+
+  const amount = ethers.parseUnits(amountInput, decimals);
+  status.classList.remove("d-none");
+  status.innerText = "Approving tokens...";
+
+  try {
+    const approveTx = await aseanx.approve(STAKING_VAULT_ADDRESS, amount);
+    await approveTx.wait();
+
+    status.innerText = "Staking...";
+    const tx = await vault.stake(amount);
+    await tx.wait();
+
+    status.innerText = "✅ Staked successfully!";
+    await loadStakingInfo();
+  } catch (err) {
+    console.error(err);
+    status.innerText = "❌ Error during staking.";
+  }
+}
+
+async function unstakeTokens() {
+  const status = document.getElementById("staking-status");
+  const amountInput = document.getElementById("unstake-amount").value;
+  const decimals = await aseanx.decimals();
+
+  const amount = ethers.parseUnits(amountInput, decimals);
+  status.classList.remove("d-none");
+  status.innerText = "Unstaking...";
+
+  try {
+    const tx = await vault.unstake(amount);
+    await tx.wait();
+
+    status.innerText = "✅ Unstaked successfully!";
+    await loadStakingInfo();
+  } catch (err) {
+    console.error(err);
+    status.innerText = "❌ Error during unstaking.";
+  }
+}
+
+// Auto-connect on page load
+connect();
+
+</script>
