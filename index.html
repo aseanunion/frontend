@@ -79,39 +79,62 @@
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@8.9.24/dist.min.js"></script>
  <script>
+// Initialize map
 const map = L.map('aseanMap', {
   zoomControl: false,
   attributionControl: false
-}).setView([0.5, 112], 4); // Centered around ASEAN
+}).setView([0.5, 112], 4);
 
-// OPTIONAL: Remove default tiles completely
+// Remove default tiles
 map.eachLayer(layer => map.removeLayer(layer));
 
-// Load ASEAN GeoJSON and style it
+// Load ASEAN GeoJSON
 fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json")
   .then(res => res.json())
   .then(data => {
-    const gradientColors = [
-      '#ffcc00', '#ff9900', '#ff6600', '#ff3300',
-      '#cc3300', '#993300', '#663300', '#333300'
-    ];
-
-    let i = 0;
-    L.geoJSON(data, {
-      style: function () {
-        return {
-          fillColor: gradientColors[i++ % gradientColors.length],
-          color: "#ffffff",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.7
-        };
+    const geoLayer = L.geoJSON(data, {
+      onEachFeature: (feature, layer) => {
+        layer.bindTooltip(feature.properties.name || "Unknown");
       },
-      onEachFeature: function (feature, layer) {
-        const name = feature.properties?.name || "Unknown";
-        layer.bindTooltip(`🇦🇸 ${name}`, { permanent: false, direction: 'top' });
-      }
+      style: () => ({
+        fillColor: "url(#asean-gradient)",
+        color: "#fff",
+        weight: 1,
+        fillOpacity: 0.8
+      })
     }).addTo(map);
+
+    // Create SVG defs after render
+    map.once('layeradd', () => {
+      const svg = document.querySelector('.leaflet-overlay-pane svg');
+      if (!svg.querySelector('defs')) {
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+        gradient.setAttribute("id", "asean-gradient");
+        gradient.setAttribute("x1", "0%");
+        gradient.setAttribute("y1", "0%");
+        gradient.setAttribute("x2", "100%");
+        gradient.setAttribute("y2", "100%");
+
+        // Define gradient stops (multi-color)
+        const stops = [
+          { offset: "0%", color: "#4facfe" },
+          { offset: "25%", color: "#00f2fe" },
+          { offset: "50%", color: "#43e97b" },
+          { offset: "75%", color: "#f9f047" },
+          { offset: "100%", color: "#f12711" }
+        ];
+        stops.forEach(s => {
+          const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+          stop.setAttribute("offset", s.offset);
+          stop.setAttribute("stop-color", s.color);
+          gradient.appendChild(stop);
+        });
+
+        defs.appendChild(gradient);
+        svg.insertBefore(defs, svg.firstChild);
+      }
+    });
   });
 </script>
 </body>
