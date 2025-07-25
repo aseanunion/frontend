@@ -7,7 +7,8 @@
   <!-- Bootstrap & HTMX -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://unpkg.com/htmx.org@1.9.2"></script>
- <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+ <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Ethers.js (UMD version) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
 
@@ -54,7 +55,8 @@
       TOKEN : <div id="tokenBalance" class="text-end text-muted small me-3 mt-2"></div> $ASX
     </div>
   </nav>
- <div id="asean3DMap" style="height: 500px;"></div>
+<div id="aseanMap" style="height: 500px; margin-top: 10px; border-radius: 6px; overflow: hidden;"></div>
+
   <!-- Tabs -->
   <div class="container mt-4">
     <ul class="nav nav-tabs">
@@ -76,68 +78,41 @@
   </div>
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@8.9.24/dist.min.js"></script>
-  <script>
-  mapboxgl.accessToken = 'pk.eyJ1IjoiYXNlYW51bmlvbiIsImEiOiJjbWRpcXJycGMwZHVoMnBvc3B4aHlkMGExIn0.yTzd8j9meT8hJeK9XxYVwA';
+ <script>
+const map = L.map('aseanMap', {
+  zoomControl: false,
+  attributionControl: false
+}).setView([0.5, 112], 4); // Centered around ASEAN
 
-const map = new mapboxgl.Map({
-  container: 'asean3DMap',
-  style: 'mapbox://styles/mapbox/light-v10', // cartoon-style map
-  center: [110, 2],
-  zoom: 4,
-  pitch: 50,
-  bearing: -20,
-  antialias: true
-});
+// OPTIONAL: Remove default tiles completely
+map.eachLayer(layer => map.removeLayer(layer));
 
-map.on('load', async () => {
-  const geojson = await fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json").then(r => r.json());
+// Load ASEAN GeoJSON and style it
+fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json")
+  .then(res => res.json())
+  .then(data => {
+    const gradientColors = [
+      '#ffcc00', '#ff9900', '#ff6600', '#ff3300',
+      '#cc3300', '#993300', '#663300', '#333300'
+    ];
 
-  const deckgl = new deck.DeckGL({
-    map,
-    layers: [
-      new deck.GeoJsonLayer({
-        id: 'asean-cartoon-layer',
-        data: geojson,
-        extruded: true,
-        filled: true,
-        stroked: false,
-        wireframe: true,
-        getElevation: 50000, // height of extrusion
-        getFillColor: [255, 200, 100, 255],
-        getLineColor: [0, 0, 0, 255],
-        pickable: true,
-        onHover: ({object, x, y}) => {
-          const name = object?.properties?.name || 'Unknown';
-          const tooltip = document.getElementById('map-tooltip');
-          if (tooltip) {
-            tooltip.style.left = `${x}px`;
-            tooltip.style.top = `${y}px`;
-            tooltip.innerText = `🇦🇸 ${name}`;
-            tooltip.style.display = 'block';
-          }
-        },
-        onLeave: () => {
-          const tooltip = document.getElementById('map-tooltip');
-          if (tooltip) tooltip.style.display = 'none';
-        }
-      })
-    ]
+    let i = 0;
+    L.geoJSON(data, {
+      style: function () {
+        return {
+          fillColor: gradientColors[i++ % gradientColors.length],
+          color: "#ffffff",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.7
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        const name = feature.properties?.name || "Unknown";
+        layer.bindTooltip(`🇦🇸 ${name}`, { permanent: false, direction: 'top' });
+      }
+    }).addTo(map);
   });
-});
 </script>
-  <style>
-  #map-tooltip {
-    position: absolute;
-    z-index: 999;
-    background: white;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 14px;
-    display: none;
-    pointer-events: none;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  }
-</style>
-<div id="map-tooltip"></div>
 </body>
 </html>
