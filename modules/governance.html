@@ -9,6 +9,13 @@
 </div>
 
 <script>
+  async function getContract(moduleIndex, abi, signerOrProvider) {
+  const registryAddress = "0x17714FBac6fC9881133F34707CE00d18d07f11A3";
+  const registryABI = [ "function getModule(uint8) view returns (address)" ];
+  const registry = new ethers.Contract(registryAddress, registryABI, signerOrProvider);
+  const moduleAddr = await registry.getModule(moduleIndex);
+  return new ethers.Contract(moduleAddr, abi, signerOrProvider);
+}
 const governanceABI = [
   "function getAllProposals() view returns (tuple(uint256 id, string title, uint8 voteType, uint256 countryId, string description, string[] images, string[] candidates, uint256 deadline, uint256[] voteCounts, bool executed)[])",
   "function vote(uint256 proposalId, uint256 choice) public"
