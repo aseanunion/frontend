@@ -1,0 +1,95 @@
+<!-- migration.html -->
+<div class="container mt-5">
+  <h2>🌍 Migration Request</h2>
+
+  <div id="migration-status" class="mb-3"></div>
+
+  <form id="migrationForm">
+    <div class="mb-3">
+      <label for="target-country" class="form-label">Select New Target Country:</label>
+      <select class="form-select" id="target-country" required>
+        <option value="">-- Select Country --</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Request Migration</button>
+  </form>
+</div>
+
+<script type="module">
+  import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.min.js";
+
+  const registryAddress = "0x17714FBac6fC9881133F34707CE00d18d07f11A3";
+  const registryABI = ["function getModule(uint8) view returns (address)"];
+
+  const countryABI = [
+    "function getCountryName(uint256) view returns (string memory)",
+    "function totalCountries() view returns (uint256)",
+    "function getCountryIdOf(address) view returns (uint256)"
+  ];
+
+  const migrationABI = [
+    "function requestMigration(uint256 newCountryId) external",
+    "function lastMigrationTime(address) view returns (uint256)",
+    "event MigrationRequested(address indexed user, uint256 newCountryId)"
+  ];
+
+  const SIX_MONTHS = 60 * 60 * 24 * 30 * 6; // in seconds
+
+  async function initMigration() {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const user = await signer.getAddress();
+
+    const registry = new ethers.Contract(registryAddress, registryABI, provider);
+    const countryAddr = await registry.getModule(9);  // Country Module (assuming ENUM 9)
+    const migrationAddr = await registry.getModule(7); // Migration Module (ENUM 7)
+
+    const country = new ethers.Contract(countryAddr, countryABI, provider);
+    const migration = new ethers.Contract(migrationAddr, migrationABI, signer);
+
+    const statusEl = document.getElementById("migration-status");
+    const countryDropdown = document.getElementById("target-country");
+
+    const userCountryId = await country.getCountryIdOf(user);
+    const userCountryName = await country.getCountryName(userCountryId);
+    const lastMigration = await migration.lastMigrationTime(user);
+    const now = Math.floor(Date.now() / 1000);
+
+    if (lastMigration > 0 && now - lastMigration < SIX_MONTHS) {
+      const nextAllowed = new Date((Number(lastMigration) + SIX_MONTHS) * 1000);
+      statusEl.innerHTML = `<div class="alert alert-warning">
+        ⏳ You last migrated recently.<br/>Next migration allowed after: <strong>${nextAllowed.toLocaleDateString()}</strong>
+      </div>`;
+      document.getElementById("migrationForm").style.display = "none";
+      return;
+    }
+
+    statusEl.innerHTML = `<div class="alert alert-info">
+      🌐 You are currently in: <strong>${userCountryName}</strong><br/>
+      🕒 You are eligible to migrate.
+    </div>`;
+
+    const total = await country.totalCountries();
+    for (let i = 1; i <= total; i++) {
+      const name = await country.getCountryName(i);
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = `${i}. ${name}`;
+      if (i === userCountryId) opt.disabled = true;
+      countryDropdown.appendChild(opt);
+    }
+
+    document.getElementById("migrationForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const newId = Number(countryDropdown.value);
+      if (!newId) return alert("Please select a valid country.");
+
+      await migration.requestMigration(newId);
+      alert("✅ Migration request submitted!");
+      location.reload();
+    };
+  }
+
+  window.onload = initMigration;
+</script>
