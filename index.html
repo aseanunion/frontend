@@ -31,9 +31,21 @@
         if (el.querySelector('#document-section') && typeof initDocuments === 'function') initDocuments();
       });
 
-      // Auto-load default tab
-      htmx.ajax("GET", "modules/citizen.html", "#tabContent");
-    });
+      // Fix Bootstrap tab active status on HTMX tab load
+  document.addEventListener("click", (e) => {
+    const clicked = e.target.closest(".nav-link");
+    if (clicked && clicked.hasAttribute("hx-get")) {
+      // Remove active from all
+      document.querySelectorAll(".nav-link").forEach(link => link.classList.remove("active"));
+      // Add to clicked one
+      clicked.classList.add("active");
+    }
+  });
+
+  // Auto-load citizen tab on first visit
+  document.addEventListener("DOMContentLoaded", () => {
+    htmx.ajax("GET", "modules/citizen.html", "#tabContent");
+  });
 
     // Handle nav tab active status
     document.body.addEventListener("click", (e) => {
