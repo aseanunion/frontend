@@ -14,52 +14,42 @@
   <!-- Custom Web3 Wallet Logic -->
   <script src="js/web3.js" defer></script>
 
-  <!-- Hook to auto-run module init on HTMX load -->
+  <!-- HTMX-triggered init functions -->
   <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    document.body.addEventListener('htmx:afterSettle', function (evt) {
-      const el = evt.target;
+    document.addEventListener("DOMContentLoaded", () => {
+      document.body.addEventListener('htmx:afterSettle', function (evt) {
+        const el = evt.target;
 
-      // Auto-run init function if element is present
-      if (el.querySelector('#citizen-section') && typeof initCitizen === 'function') {
-        initCitizen();
-      }
-
-      if (el.querySelector('#migration-section') && typeof initMigration === 'function') {
-        initMigration();
-      }
-
-      if (el.querySelector('#funding-section') && typeof initFunding === 'function') {
-        initFunding();
-      }
-
-      if (el.querySelector('#governance-section') && typeof initGovernance === 'function') {
-        initGovernance();
-      }
-
-      if (el.querySelector('#election-section') && typeof initElection === 'function') {
-        initElection();
-      }
-
-      if (el.querySelector('#marketplace-section') && typeof initMarketplace === 'function') {
-        initMarketplace();
-      }
-
-      if (el.querySelector('#staking-section') && typeof initStaking === 'function') {
-        initStaking();
-      }
-
-      if (el.querySelector('#supplychain-section') && typeof initSupplyChain === 'function') {
-        initSupplyChain();
-      }
-
-      if (el.querySelector('#document-section') && typeof initDocuments === 'function') {
-        initDocuments();
-      }
+        if (el.querySelector('#citizen-section') && typeof initCitizen === 'function') {
+          initCitizen();
+        }
+        if (el.querySelector('#migration-section') && typeof initMigration === 'function') {
+          initMigration();
+        }
+        if (el.querySelector('#funding-section') && typeof initFunding === 'function') {
+          initFunding();
+        }
+        if (el.querySelector('#governance-section') && typeof initGovernance === 'function') {
+          initGovernance();
+        }
+        if (el.querySelector('#election-section') && typeof initElection === 'function') {
+          initElection();
+        }
+        if (el.querySelector('#marketplace-section') && typeof initMarketplace === 'function') {
+          initMarketplace();
+        }
+        if (el.querySelector('#staking-section') && typeof initStaking === 'function') {
+          initStaking();
+        }
+        if (el.querySelector('#supplychain-section') && typeof initSupplyChain === 'function') {
+          initSupplyChain();
+        }
+        if (el.querySelector('#document-section') && typeof initDocuments === 'function') {
+          initDocuments();
+        }
+      });
     });
-  });
-</script>
-
+  </script>
 </head>
 
 <body class="bg-light">
@@ -68,7 +58,7 @@
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary px-3">
     <a class="navbar-brand" href="#">🌏 ASEAN UNION</a>
     <div class="ms-auto">
-      <button  id="connectBtn" class="btn btn-outline-light" onclick="connectWallet()">Connect Wallet</button>
+      <button id="connectBtn" class="btn btn-outline-light" onclick="connectWallet()">Connect Wallet</button>
       <span id="walletAddress" class="text-white ms-2"></span>
     </div>
   </nav>
@@ -77,15 +67,14 @@
   <div class="container mt-4">
     <ul class="nav nav-tabs">
       <li class="nav-item">
-        <a class="nav-link active"
-           hx-get="modules/citizen.html"
-           hx-target="#tabContent"
-           hx-trigger="load"
+        <a class="nav-link active" 
+           hx-get="modules/citizen.html" 
+           hx-target="#tabContent" 
            href="#">CITIZENSHIP</a>
       </li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/country.html" hx-target="#tabContent" href="#">REGIONS</a></li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/governance.html" hx-target="#tabContent" href="#">GOVERNANCE</a></li>
-       <li class="nav-item"><a class="nav-link" hx-get="modules/election.html" hx-target="#tabContent" href="#">ELECTION</a></li>
+      <li class="nav-item"><a class="nav-link" hx-get="modules/election.html" hx-target="#tabContent" href="#">ELECTION</a></li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/funding.html" hx-target="#tabContent" href="#">FUNDING</a></li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/migration.html" hx-target="#tabContent" href="#">MIGRATION</a></li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/marketplace.html" hx-target="#tabContent" href="#">MARKET</a></li>
@@ -97,6 +86,21 @@
       <!-- Dynamic content from HTMX modules will load here -->
     </div>
   </div>
+
+  <!-- Auto-load first tab on load -->
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      htmx.ajax("GET", "modules/citizen.html", "#tabContent");
+    });
+
+    // Handle active class styling on tabs
+    document.addEventListener("click", (e) => {
+      if (e.target.matches(".nav-link")) {
+        document.querySelectorAll(".nav-link").forEach(el => el.classList.remove("active"));
+        e.target.classList.add("active");
+      }
+    });
+  </script>
 
 </body>
 </html>
