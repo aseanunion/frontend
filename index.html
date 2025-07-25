@@ -1,53 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>ASEAN UNION</title>
 
   <!-- Bootstrap & HTMX -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://unpkg.com/htmx.org@1.9.2"></script>
 
-  <!-- Ethers.js (IIFE version, attaches to global `ethers`) -->
+  <!-- Ethers.js (IIFE version) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
 
   <!-- Custom Web3 Wallet Logic -->
   <script src="js/web3.js" defer></script>
 
-  <!-- HTMX-triggered init functions -->
   <script>
+    // Auto-run module init on HTMX content load
     document.addEventListener("DOMContentLoaded", () => {
       document.body.addEventListener('htmx:afterSettle', function (evt) {
         const el = evt.target;
 
-        if (el.querySelector('#citizen-section') && typeof initCitizen === 'function') {
-          initCitizen();
-        }
-        if (el.querySelector('#migration-section') && typeof initMigration === 'function') {
-          initMigration();
-        }
-        if (el.querySelector('#funding-section') && typeof initFunding === 'function') {
-          initFunding();
-        }
-        if (el.querySelector('#governance-section') && typeof initGovernance === 'function') {
-          initGovernance();
-        }
-        if (el.querySelector('#election-section') && typeof initElection === 'function') {
-          initElection();
-        }
-        if (el.querySelector('#marketplace-section') && typeof initMarketplace === 'function') {
-          initMarketplace();
-        }
-        if (el.querySelector('#staking-section') && typeof initStaking === 'function') {
-          initStaking();
-        }
-        if (el.querySelector('#supplychain-section') && typeof initSupplyChain === 'function') {
-          initSupplyChain();
-        }
-        if (el.querySelector('#document-section') && typeof initDocuments === 'function') {
-          initDocuments();
-        }
+        if (el.querySelector('#citizen-section') && typeof initCitizen === 'function') initCitizen();
+        if (el.querySelector('#migration-section') && typeof initMigration === 'function') initMigration();
+        if (el.querySelector('#funding-section') && typeof initFunding === 'function') initFunding();
+        if (el.querySelector('#governance-section') && typeof initGovernance === 'function') initGovernance();
+        if (el.querySelector('#election-section') && typeof initElection === 'function') initElection();
+        if (el.querySelector('#marketplace-section') && typeof initMarketplace === 'function') initMarketplace();
+        if (el.querySelector('#staking-section') && typeof initStaking === 'function') initStaking();
+        if (el.querySelector('#supplychain-section') && typeof initSupplyChain === 'function') initSupplyChain();
+        if (el.querySelector('#document-section') && typeof initDocuments === 'function') initDocuments();
       });
+
+      // Auto-load default tab
+      htmx.ajax("GET", "modules/citizen.html", "#tabContent");
+    });
+
+    // Handle nav tab active status
+    document.body.addEventListener("click", (e) => {
+      const tab = e.target.closest(".nav-link");
+      if (tab && tab.matches("[hx-get]")) {
+        document.querySelectorAll(".nav-link").forEach(el => el.classList.remove("active"));
+        tab.classList.add("active");
+      }
     });
   </script>
 </head>
@@ -67,10 +61,7 @@
   <div class="container mt-4">
     <ul class="nav nav-tabs">
       <li class="nav-item">
-        <a class="nav-link active" 
-           hx-get="modules/citizen.html" 
-           hx-target="#tabContent" 
-           href="#">CITIZENSHIP</a>
+        <a class="nav-link active" hx-get="modules/citizen.html" hx-target="#tabContent" href="#">CITIZENSHIP</a>
       </li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/country.html" hx-target="#tabContent" href="#">REGIONS</a></li>
       <li class="nav-item"><a class="nav-link" hx-get="modules/governance.html" hx-target="#tabContent" href="#">GOVERNANCE</a></li>
@@ -82,25 +73,11 @@
       <li class="nav-item"><a class="nav-link" hx-get="modules/supplychain.html" hx-target="#tabContent" href="#">SUPPLY CHAIN</a></li>
     </ul>
 
+    <!-- HTMX target -->
     <div id="tabContent" class="mt-4">
-      <!-- Dynamic content from HTMX modules will load here -->
+      <!-- Dynamic content will load here -->
     </div>
   </div>
-
-  <!-- Auto-load first tab on load -->
-  <script>
-    window.addEventListener("DOMContentLoaded", () => {
-      htmx.ajax("GET", "modules/citizen.html", "#tabContent");
-    });
-
-    // Handle active class styling on tabs
-    document.addEventListener("click", (e) => {
-      if (e.target.matches(".nav-link")) {
-        document.querySelectorAll(".nav-link").forEach(el => el.classList.remove("active"));
-        e.target.classList.add("active");
-      }
-    });
-  </script>
 
 </body>
 </html>
