@@ -1,53 +1,52 @@
 <!-- citizen.html -->
-<div class="container mt-5" id="citizen-section">
-  <h2>ASEAN UNION Citizenship</h2>
-  <div id="citizen-status" class="mb-4"></div>
+<div class="container mt-5">
+  <div id="citizen-section">
+    <h2>ASEAN UNION Citizenship</h2>
+    <div id="citizen-status" class="mb-4"></div>
 
-  <!-- Registration Form -->
-  <div id="join-form" style="display: none;">
-    <h5>Join ASEAN UNION</h5>
-    <form id="kycForm">
-      <div class="mb-2">
-        <input type="text" class="form-control" name="name" placeholder="Full Name" required />
-      </div>
-      <div class="mb-2">
-        <input type="text" class="form-control" name="country" placeholder="Country (e.g. Indonesia)" required />
-      </div>
-      <div class="mb-2">
-        <input type="date" class="form-control" name="dob" placeholder="Date of Birth" required />
-      </div>
-      <div class="mb-2">
-        <input type="text" class="form-control" name="nationalId" placeholder="National ID" required />
-      </div>
-      <div class="mb-2">
-        <input type="file" class="form-control" name="photo" accept="image/*" required />
-      </div>
-      <button type="submit" class="btn btn-primary">Verify & Mint Citizenship</button>
-    </form>
-  </div>
+    <!-- Registration Form -->
+    <div id="join-form" style="display: none;">
+      <h5>Join ASEAN UNION</h5>
+      <form id="kycForm">
+        <div class="mb-2"><input type="text" class="form-control" name="name" placeholder="Full Name" required /></div>
+        <div class="mb-2"><input type="text" class="form-control" name="country" placeholder="Country" required /></div>
+        <div class="mb-2"><input type="date" class="form-control" name="dob" required /></div>
+        <div class="mb-2"><input type="text" class="form-control" name="nationalId" placeholder="National ID" required /></div>
+        <div class="mb-2"><input type="file" class="form-control" name="photo" accept="image/*" required /></div>
+        <button type="submit" class="btn btn-primary">Verify & Mint Citizenship</button>
+      </form>
+    </div>
 
-  <!-- NFT Profile -->
-  <div id="profile" class="card mt-4" style="display: none;">
-    <div class="card-body">
-      <h5 class="card-title">Your ASEAN UNION Profile</h5>
-      <div id="profile-photo" class="mb-3"></div>
-      <p><strong>Name:</strong> <span id="profile-name"></span></p>
-      <p><strong>Country:</strong> <span id="profile-country"></span></p>
-      <p><strong>Date of Birth:</strong> <span id="profile-dob"></span></p>
-      <p><strong>National ID:</strong> <span id="profile-nid"></span></p>
-      <p><strong>Token ID:</strong> <span id="profile-token"></span></p>
+    <!-- Profile Display -->
+    <div id="profile" class="card mt-4" style="display: none;">
+      <div class="card-body">
+        <h5 class="card-title">Your ASEAN UNION Profile</h5>
+        <div id="profile-photo"></div>
+        <p><strong>Name:</strong> <span id="profile-name"></span></p>
+        <p><strong>Country:</strong> <span id="profile-country"></span></p>
+        <p><strong>Date of Birth:</strong> <span id="profile-dob"></span></p>
+        <p><strong>National ID:</strong> <span id="profile-nid"></span></p>
+        <p><strong>Token ID:</strong> <span id="profile-token"></span></p>
+        <p><strong>ASEANX Balance:</strong> <span id="profile-token-balance"></span></p>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-const registryAddress = "0x17714FBac6fC9881133F34707CE00d18d07f11A3";
-const registryABI = [ "function getModule(uint8) view returns (address)" ];
+const citizenNFTAddress = "0xAAEC2b58dBE6348a183057c9E0BDC0219c8690E2";
+const aseanxTokenAddress = "0xaa82A5E45a8B7d32527e17e6274B17a3428c628F";
+
 const citizenABI = [
   "function mintCitizen(string memory) external",
   "function hasCitizenNFT(address) view returns (bool)",
   "function tokenOf(address) view returns (uint256)",
   "function tokenURI(uint256) view returns (string)"
+];
+
+const erc20Abi = [
+  "function balanceOf(address) view returns (uint256)",
+  "function decimals() view returns (uint8)"
 ];
 
 const WEB3_STORAGE_KEY = "did:key:z6MktafuQzMWAzSfR7wquDfY6JQFJwbuoiLtwjoRAiQTMPXq";
@@ -64,10 +63,7 @@ async function initCitizen() {
   const signer = await provider.getSigner();
   const user = await signer.getAddress();
 
-  const registry = new ethers.Contract(registryAddress, registryABI, provider);
-  const citizenAddr = await registry.getModule(1);
-  const citizen = new ethers.Contract(citizenAddr, citizenABI, signer);
-
+  const citizen = new ethers.Contract(citizenNFTAddress, citizenABI, signer);
   const isCitizen = await citizen.hasCitizenNFT(user);
   window.isCitizen = isCitizen;
 
@@ -90,16 +86,22 @@ async function initCitizen() {
     document.getElementById("profile-dob").innerText = metadata.dob;
     document.getElementById("profile-nid").innerText = metadata.nationalId;
     document.getElementById("profile-token").innerText = tokenId;
+
+    // Load ASEANX Balance
+    const token = new ethers.Contract(aseanxTokenAddress, erc20Abi, provider);
+    const raw = await token.balanceOf(user);
+    const decimals = await token.decimals();
+    const balance = ethers.formatUnits(raw, decimals);
+    document.getElementById("profile-token-balance").innerText = `${balance} ASEANX`;
   } else {
     statusEl.innerHTML = `<div class="alert alert-warning">⚠️ You are not yet a citizen</div>`;
     formEl.style.display = "block";
     profileEl.style.display = "none";
   }
 
-  // KYC form submission
+  // KYC form
   document.getElementById("kycForm").onsubmit = async (e) => {
     e.preventDefault();
-
     const formData = new FormData(e.target);
     const photo = formData.get("photo");
 
