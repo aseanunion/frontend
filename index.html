@@ -7,7 +7,7 @@
   <!-- Bootstrap & HTMX -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://unpkg.com/htmx.org@1.9.2"></script>
-
+ <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
   <!-- Ethers.js (UMD version) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
 
@@ -46,7 +46,7 @@
 </head>
 
 <body class="bg-light">
-  <!-- Navbar -->
+  <div id="asean3DMap" style="height: 500px;"></div>
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary px-3">
     <a class="navbar-brand" href="#">🌏 ASEAN UNION</a>
     <div class="ms-auto">
@@ -74,5 +74,61 @@
       <!-- Dynamic content will load here -->
     </div>
   </div>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://unpkg.com/deck.gl@8.9.24/dist.min.js"></script>
+  <script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoiYXNlYW51bmlvbiIsImEiOiJjbWRpcXJycGMwZHVoMnBvc3B4aHlkMGExIn0.yTzd8j9meT8hJeK9XxYVwA';
+
+  const map = new mapboxgl.Map({
+    container: 'asean3DMap',
+    style: 'mapbox://styles/mapbox/dark-v11',
+    center: [110, 2],
+    zoom: 4,
+    pitch: 45,
+    bearing: -10,
+    antialias: true
+  });
+
+  map.on('load', async () => {
+    const geojson = await fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json").then(r => r.json());
+
+    const tradeRoutes = await fetch("https://api.yourbackend.com/trade-routes") // 👈 Change to your backend
+      .then(r => r.json())
+      .catch(err => {
+        console.warn("Trade route fetch failed", err);
+        return [];
+      });
+
+    new deck.DeckGL({
+      map,
+      layers: [
+        new deck.GeoJsonLayer({
+          id: 'asean-countries',
+          data: geojson,
+          filled: true,
+          extruded: true,
+          getElevation: 10000,
+          getFillColor: [20, 150, 255, 100],
+          getLineColor: [255, 255, 255],
+          lineWidthMinPixels: 1
+        }),
+        new deck.ArcLayer({
+          id: 'trade-routes',
+          data: tradeRoutes,
+          getSourcePosition: d => d.source,
+          getTargetPosition: d => d.target,
+          getSourceColor: d => d.color || [0, 255, 0],
+          getTargetColor: d => d.color || [255, 0, 0],
+          getWidth: 4,
+          pickable: true,
+          autoHighlight: true,
+          onHover: ({object}) => {
+            map.getCanvas().title = object ? `🛳 ${object.commodity} from ${object.from} to ${object.to}` : '';
+          }
+        })
+      ]
+    });
+  });
+</script>
 </body>
 </html>
