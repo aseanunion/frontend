@@ -1,0 +1,119 @@
+<div class="card">
+  <div class="card-header bg-success text-white">💰 ASEAN Project Funding</div>
+  <div class="card-body">
+    <p>Submit community projects. Upload supporting documents or images — they'll be stored on IPFS via Web3.Storage.</p>
+
+    <div id="submitProposalSection" class="mb-4" style="display:none;">
+      <h6>📝 Submit New Project Proposal</h6>
+      <input id="fundingTitle" class="form-control mb-2" placeholder="Project Title" />
+      <textarea id="fundingDesc" class="form-control mb-2" placeholder="Describe your project..."></textarea>
+      <input id="fundingAmount" class="form-control mb-2" type="number" placeholder="Requested Amount (ASEANX)" />
+
+      <label class="form-label mt-3">📎 Upload Documents (PDF, etc):</label>
+      <input type="file" id="docFiles" multiple class="form-control mb-2" accept=".pdf,.docx,.txt" />
+
+      <label class="form-label">🖼️ Upload Images:</label>
+      <input type="file" id="imgFiles" multiple class="form-control mb-3" accept="image/*" />
+
+      <button class="btn btn-primary" onclick="submitProjectWithUploads()">🚀 Submit Project</button>
+    </div>
+
+    <hr class="my-4">
+    <h6>📋 Project Proposals</h6>
+    <div id="fundingList" class="row g-3"></div>
+  </div>
+</div>
+
+<script type="module">
+import { Web3Storage } from 'https://unpkg.com/web3.storage/dist/bundle.esm.min.js';
+
+const WEB3_API_KEY = "did:key:z6MktafuQzMWAzSfR7wquDfY6JQFJwbuoiLtwjoRAiQTMPXq";
+const web3Client = new Web3Storage({ token: WEB3_API_KEY });
+
+const fundingABI = [
+  "function submitProject(string,string,uint256,string[],string[],uint256) external",
+  "function approveProject(uint256) external",
+  "function fundProject(uint256) payable external",
+  "function getAllProjects() view returns (tuple(string title,string description,uint256 countryId,address proposer,string[] documentURIs,string[] imageURIs,uint256 requestedAmount,uint256 fundedAmount,bool approved)[])"
+];
+
+async function submitProjectWithUploads() {
+  const title = document.getElementById("fundingTitle").value;
+  const description = document.getElementById("fundingDesc").value;
+  const amount = document.getElementById("fundingAmount").value;
+  const docFiles = document.getElementById("docFiles").files;
+  const imgFiles = document.getElementById("imgFiles").files;
+
+  if (!title || !description || !amount) return alert("Fill all fields.");
+
+  try {
+    const citizenContract = getContract("CitizenNFT", [
+      "function getCitizenData(address) view returns (uint256 countryId, bool verified)"
+    ]);
+    const [countryId] = await citizenContract.getCitizenData(userAddress);
+
+    // Upload docs to IPFS
+    let docUris = [], imgUris = [];
+
+    if (docFiles.length > 0) {
+      const cid = await web3Client.put([...docFiles], { wrapWithDirectory: false });
+      for (let f of docFiles) {
+        docUris.push(`ipfs://${cid}/${f.name}`);
+      }
+    }
+
+    if (imgFiles.length > 0) {
+      const cid = await web3Client.put([...imgFiles], { wrapWithDirectory: false });
+      for (let f of imgFiles) {
+        imgUris.push(`ipfs://${cid}/${f.name}`);
+      }
+    }
+
+    const contract = getContract("ProjectFunding", fundingABI);
+    const tx = await contract.connect(signer).submitProject(title, description, countryId, docUris, imgUris, amount);
+    await tx.wait();
+
+    alert("✅ Project submitted!");
+    await loadFundingProposals();
+
+  } catch (e) {
+    console.error(e);
+    alert("❌ Error: " + (e.reason || e.message));
+  }
+}
+
+async function loadFundingProposals() {
+  const contract = getContract("ProjectFunding", fundingABI);
+  const proposals = await contract.getAllProjects();
+  const container = document.getElementById("fundingList");
+  container.innerHTML = "";
+
+  proposals.forEach((p, index) => {
+    const docLinks = p.documentURIs.map(d => `<a href="${d.replace('ipfs://', 'https://ipfs.io/ipfs/')}" target="_blank">${d.split('/').pop()}</a>`).join("<br>");
+    const imgTags = p.imageURIs.map(img => `<img src="${img.replace('ipfs://', 'https://ipfs.io/ipfs/')}" class="img-fluid mb-2" style="max-height:150px;">`).join("");
+
+    const div = document.createElement("div");
+    div.className = "col-md-6";
+    div.innerHTML = `
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5>${p.title}</h5>
+          <p>${p.description}</p>
+          <p><strong>Requested:</strong> ${p.requestedAmount} ASEANX</p>
+          <p><strong>Funded:</strong> ${p.fundedAmount} ASEANX</p>
+          <p><strong>Approved:</strong> ${p.approved ? '✅' : '❌'}</p>
+          <div class="mb-2">${docLinks}</div>
+          <div>${imgTags}</div>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  if (window.isCitizen) {
+    document.getElementById("submitProposalSection").style.display = "block";
+  }
+}
+
+loadFundingProposals();
+</script>
