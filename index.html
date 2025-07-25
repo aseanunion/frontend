@@ -89,6 +89,7 @@
  
 
 <script>
+  
 const map = L.map("aseanMap", {
   zoomControl: false,
   attributionControl: false
@@ -128,6 +129,34 @@ fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map
       svg.prepend(defs);
     });
   });
+  const ws = new WebSocket("wss://stream.aisstream.io/v0/stream");
+ws.onopen = () => {
+  ws.send(JSON.stringify({
+    Apikey: "88d8ecb467d1f12c3f94f45237196086905fa807",
+    BoundingBoxes: [[-11, 90], [22, 130]], // lat/lon region covering ASEAN
+    FilterMessageTypes: ["PositionReport"]
+  }));
+};
+
+const vesselMarkers = {};
+
+ws.onmessage = event => {
+  const msg = JSON.parse(event.data);
+  if (!msg.lat || !msg.lon) return;
+  
+  const id = msg.mmsi;
+  const latlng = [msg.lat, msg.lon];
+
+  if (vesselMarkers[id]) {
+    vesselMarkers[id].setLatLng(latlng);
+  } else {
+    vesselMarkers[id] = L.circleMarker(latlng, {
+      radius: 4,
+      color: "#ff0000",
+      opacity: 0.8
+    }).addTo(map).bindPopup(`<strong>${msg.name || "Ship"}<br>Dest: ${msg.destination || "?"}</strong>`);
+  }
+};
 </script>
 </body>
 </html>
