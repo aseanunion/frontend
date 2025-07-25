@@ -8,13 +8,21 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://unpkg.com/htmx.org@1.9.2"></script>
  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Ethers.js (UMD version) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
 
   <!-- Custom Web3 Wallet Logic -->
   <script src="js/web3.js" defer></script>
-
+<style>
+  #aseanMap { height: 520px; border-radius: 6px; margin-top: 10px; position: relative; }
+  .leaflet-overlay-pane svg path {
+    fill: url(#aseanGradient) !important;
+    stroke: #ffffff;
+    stroke-width: 1;
+  }
+</style>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       // Auto-load first tab content
@@ -78,14 +86,7 @@
   </div>
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@8.9.24/dist.min.js"></script>
- <style>
-/* Force Leaflet vector rendering to use SVG (required for gradients) */
-  .leaflet-container svg path {
-    stroke: #ffffff;
-    stroke-width: 1;
-    fill-opacity: 0.9;
-  }
-</style>
+ 
 
 <script>
 const map = L.map("aseanMap", {
@@ -96,36 +97,36 @@ const map = L.map("aseanMap", {
 fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json")
   .then(res => res.json())
   .then(geojson => {
-    const features = geojson.features;
-    const total = features.length;
-
-    // Create color scale (warm to cool)
-    const getGradientColor = (index) => {
-      const ratio = index / total;
-      const r = Math.round(255 - ratio * 100); // from red (255) to teal (155)
-      const g = Math.round(150 + ratio * 80);  // from 150 to 230
-      const b = Math.round(50 + ratio * 180);  // from 50 to 230
-      return `rgb(${r},${g},${b})`;
-    };
-
-    const geoLayer = L.geoJSON(geojson, {
-      style: (feature, index) => {
-        const i = features.indexOf(feature);
-        return {
-          fillColor: getGradientColor(i),
-          fillOpacity: 0.85,
-          color: "#ffffff",
-          weight: 1
-        };
+    const layer = L.geoJSON(geojson, {
+      style: {
+        color: "#ffffff",
+        weight: 1,
+        fillOpacity: 1,
+        fillColor: "#000" // Will be overridden by gradient
       },
       onEachFeature: (feature, layer) => {
-        if (feature.properties.name) {
-          layer.bindTooltip(feature.properties.name, { permanent: false });
-        }
+        if (feature.properties.name)
+          layer.bindTooltip(feature.properties.name, { sticky: true });
       }
     }).addTo(map);
 
-    map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] });
+    map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+
+    // Wait for map to render SVG
+    map.on("layeradd", () => {
+      const svg = document.querySelector(".leaflet-overlay-pane svg");
+      if (!svg || svg.querySelector("defs")) return;
+
+      // Append gradient defs only once
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      defs.innerHTML = `
+        <linearGradient id="aseanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00c6ff" />
+          <stop offset="100%" stop-color="#0072ff" />
+        </linearGradient>
+      `;
+      svg.prepend(defs);
+    });
   });
 </script>
 </body>
