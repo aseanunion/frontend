@@ -79,63 +79,73 @@
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@8.9.24/dist.min.js"></script>
  <script>
-// Initialize map
-const map = L.map('aseanMap', {
-  zoomControl: false,
-  attributionControl: false
-}).setView([0.5, 112], 6);
+/* Force Leaflet vector rendering to use SVG (required for gradients) */
+  .leaflet-container svg path {
+    stroke: #ffffff;
+    stroke-width: 1;
+    fill-opacity: 0.9;
+  }
+</style>
 
-// Remove default tiles
-map.eachLayer(layer => map.removeLayer(layer));
-
-// Load ASEAN GeoJSON
-fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json")
-  .then(res => res.json())
-  .then(data => {
-    const geoLayer = L.geoJSON(data, {
-      onEachFeature: (feature, layer) => {
-        layer.bindTooltip(feature.properties.name || "Unknown");
-      },
-      style: () => ({
-        fillColor: "url(#asean-gradient)",
-        color: "#fff",
-        weight: 1,
-        fillOpacity: 0.8
-      })
-    }).addTo(map);
-
-    // Create SVG defs after render
-    map.once('layeradd', () => {
-      const svg = document.querySelector('.leaflet-overlay-pane svg');
-      if (!svg.querySelector('defs')) {
-        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-        const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-        gradient.setAttribute("id", "asean-gradient");
-        gradient.setAttribute("x1", "0%");
-        gradient.setAttribute("y1", "0%");
-        gradient.setAttribute("x2", "100%");
-        gradient.setAttribute("y2", "100%");
-
-        // Define gradient stops (multi-color)
-        const stops = [
-          { offset: "0%", color: "#4facfe" },
-          { offset: "25%", color: "#00f2fe" },
-          { offset: "50%", color: "#43e97b" },
-          { offset: "75%", color: "#f9f047" },
-          { offset: "100%", color: "#f12711" }
-        ];
-        stops.forEach(s => {
-          const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-          stop.setAttribute("offset", s.offset);
-          stop.setAttribute("stop-color", s.color);
-          gradient.appendChild(stop);
-        });
-
-        defs.appendChild(gradient);
-        svg.insertBefore(defs, svg.firstChild);
-      }
-    });
+<script>
+  const map = L.map("aseanMap", {
+    zoomControl: false,
+    attributionControl: false
   });
+
+  // Load ASEAN GeoJSON
+  fetch("https://raw.githubusercontent.com/aseanunion/frontend/refs/heads/main/map/asean.json")
+    .then(res => res.json())
+    .then(geojson => {
+      const geoLayer = L.geoJSON(geojson, {
+        style: {
+          fillColor: "url(#asean-gradient)",
+          color: "#ffffff",
+          weight: 1,
+          fillOpacity: 1
+        },
+        onEachFeature: (feature, layer) => {
+          if (feature.properties.name) {
+            layer.bindTooltip(feature.properties.name, { permanent: false });
+          }
+        }
+      }).addTo(map);
+
+      // Fit to bounds
+      map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] });
+
+      // Wait for map to render before injecting SVG gradient
+      map.once('layeradd', () => {
+        const svg = document.querySelector('.leaflet-overlay-pane svg');
+        if (svg && !svg.querySelector('defs')) {
+          const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+          const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+
+          gradient.setAttribute("id", "asean-gradient");
+          gradient.setAttribute("x1", "0%");
+          gradient.setAttribute("y1", "0%");
+          gradient.setAttribute("x2", "100%");
+          gradient.setAttribute("y2", "100%");
+
+          const stops = [
+            { offset: "0%", color: "#ff6a00" },
+            { offset: "30%", color: "#ffd800" },
+            { offset: "60%", color: "#21d4fd" },
+            { offset: "100%", color: "#b721ff" }
+          ];
+
+          stops.forEach(stopData => {
+            const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+            stop.setAttribute("offset", stopData.offset);
+            stop.setAttribute("stop-color", stopData.color);
+            gradient.appendChild(stop);
+          });
+
+          defs.appendChild(gradient);
+          svg.insertBefore(defs, svg.firstChild);
+        }
+      });
+    });
 </script>
 </body>
 </html>
